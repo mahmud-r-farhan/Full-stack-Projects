@@ -1,0 +1,265 @@
+
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}
+/* General styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    transition: background-color 0.3s ease;
+}
+
+a {
+    text-decoration: none !important;
+}
+
+.container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.input-file-intro {
+    margin-bottom: 20px;
+}
+
+.input-group {
+    margin: 10px 0;
+}
+
+.fileList-container {
+    position: absolute;
+    top: 15%;
+    right: 10%;
+    transform: translateY(-50%, -50%);
+    margin-top: 10px;
+    overflow-y: auto;
+    height: 60vh;
+}
+
+@media only screen and (max-width: 998px) {
+ 
+
+    .container {
+        position: absolute;
+        top: 5vh;
+        text-align: center;
+    
+        height: 100vh;
+    }
+    
+    #uploadButton {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        margin: .9px;
+        transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+    .fileList-container {
+        width: 100%;
+       translate: (50%, 50%);
+        right: 0;
+        left: 5%;
+        top: 30vh;
+        height: 45vh;
+    }
+
+}
+
+.rc-dwn {
+    position: absolute;
+    top: 20vh;
+    right: 25%;
+    transform: translateY(-50%, -50%);
+    display: none;
+}
+
+/* search box */
+.search-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+
+    /* remove this line*/
+    display: none;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    
+}
+
+#search {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#search-btn {
+    margin-left: 8px;
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+
+#search-btn:hover {
+    background-color: #0056b3;
+}
+
+/* toggle switch */
+.toggle-switch {
+    position: absolute;
+    top: 15px;
+    right: 60px;
+}
+
+.toggle-switch input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-switch label {
+    width: 40px;
+    height: 20px;
+    background-color: #3fcb48;
+    border-radius: 20px;
+    position: relative;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease;
+}
+
+.toggle-switch label::after {
+    content: '';
+    width: 18px;
+    height: 18px;
+    background-color: #40d757;
+    border-radius: 50%;
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    transition: transform 0.3s ease;
+}
+
+.toggle-switch input[type="checkbox"]:checked + label {
+    background-color: #4caf50;
+}
+
+.toggle-switch input[type="checkbox"]:checked + label::after {
+    transform: translateX(20px);
+    background-color: #fff;
+}
+
+/* Dark mode styles */
+body.dark-mode {
+    background-color: #333;
+    color: #fff;
+}
+
+body.dark-mode .toggle-switch label {
+    background-color: #666;
+}
+
+body.dark-mode .toggle-switch input[type="checkbox"]:checked + label {
+    background-color: #4cb950;
+}
+
+/* Animation and hover effects */
+button {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    margin: .7px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+button:hover {
+    background-color: #45a049;
+    transform: scale(1.05);
+}
+
+input[type="file"],
+input[type="text"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    position: relative;
+    transition: border-color 0.3s ease;
+}
+
+input[type="file"]:hover,
+input[type="text"]:hover {
+    border-color: #4caf50;
+}
+
+.date-time {
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    text-align: right;
+    padding: 10px;
+    background-color: transparent;
+    border: 1px solid #efe7e718;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+/* for smartwatch, File sharing */
+@media only screen and (max-width: 200px) {
+    h1 {
+        display: none;
+    }
+    h4 {
+        display: none;
+    }
+    .search-content {
+        display: none;
+    }
+    .date-time {
+        display: none;
+    }
+    #search-btn {
+        display: none;
+    }
+    .toggle-switch {
+        display: none;
+    }
+}
