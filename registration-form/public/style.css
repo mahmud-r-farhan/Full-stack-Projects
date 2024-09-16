@@ -1,0 +1,144 @@
+/* Reset some default styles */
+* {
+    margin: 0;
+    padding: 0;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    letter-spacing: 1px;
+
+    
+    box-sizing: border-box;
+}
+
+body {
+    background-image: url('img/bg.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+    
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+form {
+    background: #ffffff2a;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: rgba(0, 0, 0, 0.09) 0px 3px 12px;
+    backdrop-filter: blur(5px);
+    width: 100%;
+    max-width: 400px;
+    position: absolute;
+    right: 14pc;
+    animation: fadeIn 1s ease-in-out;
+}
+
+label {
+    color: #fff;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: none;
+    border-radius: 5px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 16px;
+}
+
+
+
+input::placeholder {
+    color: #ccc;
+}
+
+
+
+/* CSS */
+button{
+    width: 100%;
+  --glow-color: #f0499156;
+  --glow-spread-color: #f365a762;
+  --enhanced-glow-color: rgba(231, 206, 255, 0.363);
+  --btn-color: rgba(219, 68, 169, 0.356);
+  border: .25em solid var(--glow-color);
+  padding: 1em 3em;
+  color: white;
+  font-size: 15px;
+
+  font-weight: bold;
+  background-color: var(--btn-color);
+  border-radius: 1em;
+  outline: none;
+  box-shadow: 0 0 1em .25em var(--glow-color),
+        0 0 4em 1em var(--glow-spread-color),
+        inset 0 0 .75em .25em var(--glow-color);
+  text-shadow: 0 0 .5em var(--glow-color);
+  position: relative;
+  transition: all 0.3s;
+  cursor: pointer;
+  }
+
+button::after {
+  pointer-events: none;
+  content: "";
+  position: absolute;
+  top: 120%;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background-color: var(--glow-spread-color);
+  filter: blur(1.5em);
+  opacity: .7;
+  transform: translateY(20px);
+ 
+  transform: perspective(1.5em) rotateX(35deg) scale(1, .6);
+}
+
+button:hover {
+  color: whitesmoke;
+  background-color: var(--glow-color);
+  box-shadow: 0 0 1em .25em var(--glow-color),
+        0 0 4em 2em var(--glow-spread-color),
+        inset 0 0 .75em .25em var(--glow-color);
+}
+
+button:active {
+  box-shadow: 0 0 0.6em .25em var(--glow-color),
+        0 0 2.5em 2em var(--glow-spread-color),
+        inset 0 0 .5em .25em var(--glow-color);
+}
+
+
+
+
+@keyframes fadeIn {
+    from {
+        opacity: .5;
+        transform: translateY(-30px);
+     
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+     
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    form {
+        padding: 30px;
+    }
+
+    input, button {
+        font-size: 14px;
+    }
+}
