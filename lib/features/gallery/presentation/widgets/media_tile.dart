@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
-import '../../../../core/constants/app_constants.dart';
+
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/models.dart';
 

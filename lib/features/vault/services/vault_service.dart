@@ -10,7 +10,7 @@ import '../../../data/models/models.dart';
 // ═══════════════════════════════════════════════════════════
 
 class VaultService {
-  final LocalAuthentication _auth = const LocalAuthentication();
+  final LocalAuthentication _auth = LocalAuthentication();
   final FlutterSecureStorage _storage = const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );

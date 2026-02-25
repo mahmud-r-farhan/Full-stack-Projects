@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_theme.dart';
+
 import '../../shared/widgets/glass_widgets.dart';
 import '../gallery/presentation/screens/gallery_screen.dart';
 import '../sharing/presentation/screens/sharing_screen.dart';

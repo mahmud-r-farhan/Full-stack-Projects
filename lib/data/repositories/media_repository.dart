@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../models/models.dart';
@@ -91,7 +90,7 @@ class MediaRepository {
       hasAll: true,
     );
     if (albums.isEmpty) return 0;
-    return albums.first.assetCount;
+    return await albums.first.assetCountAsync;
   }
 
   // ─── Isolate-safe static helpers ─────────────────────────

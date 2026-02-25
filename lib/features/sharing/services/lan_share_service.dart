@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
@@ -94,9 +94,15 @@ class LanShareService {
         type: RequestType.common,
         hasAll: true,
       );
-      final data = albums
-          .map((a) => {'id': a.id, 'name': a.name, 'count': a.assetCount})
-          .toList();
+      final data = await Future.wait(
+        albums.map(
+          (a) async => {
+            'id': a.id,
+            'name': a.name,
+            'count': await a.assetCountAsync,
+          },
+        ),
+      );
       return _jsonResponse(data);
     } catch (e) {
       return Response.internalServerError(
@@ -271,7 +277,7 @@ async function loadAlbums(){
   const r=await fetch(BASE+'/albums');
   const albums=await r.json();
   const el=document.getElementById('albums');
-  el.innerHTML=albums.map(a=>`<div class="album-card" onclick="loadAssets('${a.id}','${a.name}')">
+  el.innerHTML=albums.map(a=>`<div class="album-card" onclick="loadAssets('\${a.id}','\${a.name}')">
     <h3>\${a.name||'All Photos'}</h3><span>\${a.count} items</span></div>`).join('');
 }
 async function loadAssets(id,name){

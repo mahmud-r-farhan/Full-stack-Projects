@@ -286,12 +286,18 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                   a.name,
                   style: const TextStyle(color: AppColors.textPrimary),
                 ),
-                subtitle: Text(
-                  '${a.assetCount} items',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                  ),
+                subtitle: FutureBuilder<int>(
+                  future: a.assetCountAsync,
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? '...';
+                    return Text(
+                      '$count items',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    );
+                  },
                 ),
                 onTap: () {
                   ref.read(galleryProvider.notifier).switchAlbum(a);
@@ -525,11 +531,12 @@ class _MediaPageState extends State<_MediaPage> {
 
   Future<void> _load() async {
     final bytes = await widget.asset.entity.originBytes;
-    if (mounted)
+    if (mounted) {
       setState(() {
         _bytes = bytes;
         _loading = false;
       });
+    }
   }
 
   @override

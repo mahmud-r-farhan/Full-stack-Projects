@@ -1,0 +1,28 @@
+﻿Analyzing project...                                            
+
+   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' - lib\data\repositories\media_repository.dart:1:8 - unnecessary_import
+  error - The getter 'assetCount' isn't defined for the type 'AssetPathEntity' - lib\data\repositories\media_repository.dart:94:25 - undefined_getter
+  error - The getter 'assetCount' isn't defined for the type 'AssetPathEntity' - lib\features\gallery\presentation\screens\gallery_screen.dart:290:24 - undefined_getter
+   info - Statements in an if should be enclosed in a block - lib\features\gallery\presentation\screens\gallery_screen.dart:529:7 - curly_braces_in_flow_control_structures
+warning - Unused import: '../../../../core/constants/app_constants.dart' - lib\features\gallery\presentation\widgets\media_tile.dart:4:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\onboarding\presentation\screens\onboarding_screen.dart:195:50 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor or activeTrackColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\features\settings\presentation\screens\settings_screen.dart:57:19 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor or activeTrackColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\features\settings\presentation\screens\settings_screen.dart:71:19 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor or activeTrackColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\features\settings\presentation\screens\settings_screen.dart:102:19 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor or activeTrackColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\features\settings\presentation\screens\settings_screen.dart:117:19 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\settings\presentation\screens\settings_screen.dart:189:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\settings\presentation\screens\settings_screen.dart:414:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\settings\presentation\screens\settings_screen.dart:449:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\sharing\presentation\screens\sharing_screen.dart:261:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\sharing\presentation\screens\sharing_screen.dart:336:36 - deprecated_member_use
+  error - The getter 'assetCount' isn't defined for the type 'AssetPathEntity' - lib\features\sharing\services\lan_share_service.dart:98:63 - undefined_getter
+  error - Undefined name 'a' - lib\features\sharing\services\lan_share_service.dart:274:78 - undefined_identifier
+  error - Undefined name 'a' - lib\features\sharing\services\lan_share_service.dart:274:88 - undefined_identifier
+warning - Unused import: '../../core/theme/app_theme.dart' - lib\features\shell\shell_screen.dart:4:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\vault\presentation\screens\vault_screen.dart:73:51 - deprecated_member_use
+  error - The name 'ThumbnailSize' isn't a class - lib\features\vault\presentation\screens\vault_screen.dart:276:13 - creation_with_non_type
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\vault\presentation\screens\vault_screen.dart:299:40 - deprecated_member_use
+  error - The constructor being called isn't a const constructor - lib\features\vault\services\vault_service.dart:13:37 - const_with_non_const
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\shared\widgets\glass_widgets.dart:249:54 - deprecated_member_use
+  error - The name 'MyApp' isn't a class - test\widget_test.dart:16:35 - creation_with_non_type
+

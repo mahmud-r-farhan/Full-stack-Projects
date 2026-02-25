@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/models.dart';
 import '../../../../shared/widgets/glass_widgets.dart';
 import '../../providers/vault_provider.dart';
+import 'package:photo_manager/photo_manager.dart';
 
 // ═══════════════════════════════════════════════════════════
 //  Vault Screen — Biometric gate + hidden media grid
