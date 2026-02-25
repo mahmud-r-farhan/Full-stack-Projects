@@ -1,0 +1,70 @@
+name: liquidsync_gallery
+description: "LiquidSync Gallery — Digital Sanctuary for your media. Private, fast, and beautifully local."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Media access (PRIMARY — do NOT use direct file system traversal)
+  photo_manager: ^3.6.3
+
+  # Permissions
+  permission_handler: ^11.3.1
+
+  # Network / LAN Sharing
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
+  network_info_plus: ^6.0.1
+
+  # QR Code
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^5.2.3
+
+  # Biometric / Vault
+  local_auth: ^2.3.0
+
+  # Riverpod State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # UI & Animations
+  flutter_animate: ^4.5.0
+  dynamic_color: ^1.7.0
+  cached_network_image: ^3.4.1
+
+  # Video Player
+  video_player: ^2.9.2
+  chewie: ^1.8.5
+
+  # EXIF parsing
+  exif: ^3.3.0
+
+  # Encryption for vault
+  flutter_secure_storage: ^9.2.4
+
+  # Utilities
+  uuid: ^4.5.1
+  intl: ^0.20.2
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  shared_preferences: ^2.3.5
+  google_fonts: ^6.2.1
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.15
+  riverpod_generator: ^2.6.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
