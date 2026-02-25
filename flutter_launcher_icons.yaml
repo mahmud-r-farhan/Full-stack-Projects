@@ -1,0 +1,11 @@
+flutter_launcher_icons:
+  image_path: "assets/logo/app-logo.jpg"
+  android: true
+  ios: false
+  web: true
+  windows: false
+  macos: false
+
+  android:
+    notification_icon: "icon_0"
+    notification_background_color: "#ffffff"
