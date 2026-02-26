@@ -9,8 +9,7 @@ import '../../../../shared/widgets/glass_widgets.dart';
 import '../../providers/lan_share_provider.dart';
 
 // ═══════════════════════════════════════════════════════════
-//  LAN Sharing Screen
-//  The "Killer Feature" — tap, start server, show QR
+//  LAN Sharing Screen — Professional sharing experience
 // ═══════════════════════════════════════════════════════════
 
 class SharingScreen extends ConsumerWidget {
@@ -39,7 +38,7 @@ class SharingScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Share your gallery with any device on your Wi-Fi. No internet needed.',
+                'Share your gallery with any device on your Wi-Fi.\nNo internet needed — everything stays local.',
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 14,
@@ -52,7 +51,8 @@ class SharingScreen extends ConsumerWidget {
               _ShareCard(serverInfo: serverInfo),
               const SizedBox(height: 24),
 
-              // ── How it works
+              // ── Features
+              if (serverInfo.isRunning) _RunningFeatures(),
               if (!serverInfo.isRunning) _HowItWorks(),
             ],
           ),
@@ -190,9 +190,14 @@ class _ShareCard extends ConsumerWidget {
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: serverInfo.url));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('URL copied!'),
-                          duration: Duration(seconds: 2),
+                        SnackBar(
+                          content: const Text('URL copied!'),
+                          backgroundColor: AppColors.darkCard,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          duration: const Duration(seconds: 2),
                         ),
                       );
                     },
@@ -285,6 +290,107 @@ class _PulsingIcon extends StatelessWidget {
   }
 }
 
+// ─── Running Features ─────────────────────────────────────
+class _RunningFeatures extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final features = [
+      (
+        Icons.devices_rounded,
+        AppColors.accent,
+        'Any Device',
+        'Works on phones, tablets, PCs, and Smart TVs',
+      ),
+      (
+        Icons.videocam_rounded,
+        AppColors.primary,
+        'Video Streaming',
+        'Play videos directly in the browser',
+      ),
+      (
+        Icons.download_rounded,
+        AppColors.success,
+        'Direct Download',
+        'Save any photo or video to connected devices',
+      ),
+      (
+        Icons.shield_rounded,
+        AppColors.accentWarm,
+        'Private & Local',
+        'No internet required — stays on your network',
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Active Features',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...features.asMap().entries.map((e) {
+          final (icon, color, title, subtitle) = e.value;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: GlassContainer(
+              borderRadius: 14,
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: color.withOpacity(0.15),
+                    ),
+                    child: Icon(icon, color: color, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success.withOpacity(0.7),
+                    size: 18,
+                  ),
+                ],
+              ),
+            ).animate().slideX(begin: 0.1).fadeIn(delay: (e.key * 80).ms),
+          );
+        }),
+      ],
+    );
+  }
+}
+
 // ─── How it works section ─────────────────────────────────
 class _HowItWorks extends StatelessWidget {
   @override
@@ -294,7 +400,7 @@ class _HowItWorks extends StatelessWidget {
         Icons.play_circle_outline_rounded,
         AppColors.accent,
         'Tap "Start Sharing"',
-        'LiquidSync starts a local HTTP server on your network',
+        'Lumina starts a local HTTP server on your network',
       ),
       (
         Icons.qr_code_scanner_rounded,
@@ -306,7 +412,7 @@ class _HowItWorks extends StatelessWidget {
         Icons.download_rounded,
         AppColors.success,
         'Browse & Save',
-        'View thumbnails and download files directly to any device',
+        'View photos, stream videos, and download files directly',
       ),
     ];
 

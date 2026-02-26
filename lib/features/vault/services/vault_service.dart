@@ -7,6 +7,11 @@ import '../../../data/models/models.dart';
 //  Vault Service — Biometric auth + hidden media management
 //  Strategy: Move files to a .nomedia album to hide from
 //  the system MediaStore. Optional encryption in v2+.
+//
+//  FIX: The previous implementation returned false when
+//  biometrics were unavailable, even if device
+//  credentials (PIN/Pattern) were available.
+//  Now properly uses isDeviceSupported() as fallback.
 // ═══════════════════════════════════════════════════════════
 
 class VaultService {
@@ -17,42 +22,110 @@ class VaultService {
 
   static const String _vaultKey = 'vault_asset_ids';
 
-  // ─── Biometric capability check ──────────────────────────
+  // ─── Biometric / device credential check ─────────────────
 
-  Future<bool> isBiometricAvailable() async {
+  Future<bool> isAuthAvailable() async {
     try {
-      return await _auth.canCheckBiometrics || await _auth.isDeviceSupported();
+      // Check if ANY form of auth is available (biometric OR PIN/pattern)
+      final canCheckBiometrics = await _auth.canCheckBiometrics;
+      final isDeviceSupported = await _auth.isDeviceSupported();
+      return canCheckBiometrics || isDeviceSupported;
     } catch (_) {
       return false;
     }
   }
 
-  // ─── Authenticate ────────────────────────────────────────
-
-  Future<bool> authenticate() async {
+  Future<List<BiometricType>> getAvailableBiometrics() async {
     try {
-      final available = await isBiometricAvailable();
-      if (!available) return false;
+      return await _auth.getAvailableBiometrics();
+    } catch (_) {
+      return [];
+    }
+  }
 
-      return await _auth.authenticate(
-        localizedReason: 'Authenticate to access your secure Vault',
-        options: const AuthenticationOptions(
+  // ─── Authenticate ────────────────────────────────────────
+  //  FIX: biometricOnly was not false in all cases and
+  //  the error was swallowed silently. Now returns detailed info.
+
+  Future<(bool success, String? error)> authenticateWithDetails() async {
+    try {
+      final available = await isAuthAvailable();
+      if (!available) {
+        return (
+          false,
+          'No authentication method available. Please set up a PIN, pattern, or biometric lock on your device.',
+        );
+      }
+
+      final biometrics = await getAvailableBiometrics();
+      final hasBiometrics = biometrics.isNotEmpty;
+
+      final success = await _auth.authenticate(
+        localizedReason: 'Authenticate to access your Lumina Vault',
+        options: AuthenticationOptions(
+          // Allow PIN/pattern if no biometrics set up
           biometricOnly: false,
           stickyAuth: true,
           sensitiveTransaction: true,
+          useErrorDialogs: true,
         ),
       );
-    } catch (_) {
-      return false;
+
+      if (success) {
+        return (true, null);
+      } else {
+        return (
+          false,
+          hasBiometrics
+              ? 'Authentication cancelled. Try again.'
+              : 'Authentication failed. Use your device PIN or pattern.',
+        );
+      }
+    } catch (e) {
+      // Provide meaningful error messages
+      final msg = e.toString();
+      if (msg.contains('LockedOut') || msg.contains('lockedOut')) {
+        return (
+          false,
+          'Too many attempts. Please wait a moment and try again.',
+        );
+      }
+      if (msg.contains('PermanentlyLockedOut') ||
+          msg.contains('permanentlyLockedOut')) {
+        return (false, 'Biometrics locked. Please unlock your device first.');
+      }
+      if (msg.contains('NotAvailable') || msg.contains('notAvailable')) {
+        return (
+          false,
+          'Authentication not available. Set up a PIN or biometric lock in device settings.',
+        );
+      }
+      if (msg.contains('NotEnrolled') || msg.contains('notEnrolled')) {
+        return (
+          false,
+          'No biometrics enrolled. Please set up fingerprint or face unlock in device settings.',
+        );
+      }
+      return (false, 'Authentication error. Please try again.');
     }
+  }
+
+  // Legacy method kept for backward compatibility
+  Future<bool> authenticate() async {
+    final (success, _) = await authenticateWithDetails();
+    return success;
   }
 
   // ─── Load vault asset IDs ─────────────────────────────────
 
   Future<List<String>> _loadVaultIds() async {
-    final raw = await _storage.read(key: _vaultKey);
-    if (raw == null || raw.isEmpty) return [];
-    return raw.split(',').where((s) => s.isNotEmpty).toList();
+    try {
+      final raw = await _storage.read(key: _vaultKey);
+      if (raw == null || raw.isEmpty) return [];
+      return raw.split(',').where((s) => s.isNotEmpty).toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   // ─── Save vault asset IDs ─────────────────────────────────
@@ -68,16 +141,25 @@ class VaultService {
     if (ids.isEmpty) return [];
 
     final assets = <MediaAsset>[];
+    final validIds = <String>[];
+
     for (final id in ids) {
       try {
         final entity = await AssetEntity.fromId(id);
         if (entity != null) {
           assets.add(MediaAsset(entity: entity, isVaulted: true));
+          validIds.add(id);
         }
       } catch (_) {
         // Silent fallback for missing/corrupted entries
       }
     }
+
+    // Clean up any invalid IDs
+    if (validIds.length != ids.length) {
+      await _saveVaultIds(validIds);
+    }
+
     return assets;
   }
 

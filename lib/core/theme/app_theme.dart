@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // ═══════════════════════════════════════════════════════════
-//  LiquidSync Design Tokens — Liquid Crystal Theme
+//  Lumina Gallery Design Tokens — Liquid Crystal Theme
 // ═══════════════════════════════════════════════════════════
 
 class AppColors {

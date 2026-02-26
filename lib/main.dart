@@ -11,19 +11,25 @@ import 'features/settings/providers/settings_provider.dart';
 import 'features/shell/shell_screen.dart';
 
 // ═══════════════════════════════════════════════════════════
-//  Entry Point
+//  Entry Point — Lumina Gallery
 // ═══════════════════════════════════════════════════════════
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ── Full-screen immersive mode (hides system navigation)
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-  
+  // ── Edge-to-edge transparent bars
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+    ),
+  );
+
   // ── Portrait orientation only
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   // ── Pre-warm photo manager (suppresses cold-start jank)
   PhotoManager.setLog(false);
@@ -37,7 +43,7 @@ void main() async {
         // Inject SharedPreferences into the provider tree
         sharedPrefsProvider.overrideWithValue(prefs),
       ],
-      child: const LiquidSyncApp(),
+      child: const LuminaGalleryApp(),
     ),
   );
 }
@@ -46,8 +52,8 @@ void main() async {
 //  Root App Widget
 // ═══════════════════════════════════════════════════════════
 
-class LiquidSyncApp extends ConsumerWidget {
-  const LiquidSyncApp({super.key});
+class LuminaGalleryApp extends ConsumerWidget {
+  const LuminaGalleryApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -57,7 +63,7 @@ class LiquidSyncApp extends ConsumerWidget {
     return DynamicColorBuilder(
       builder: (lightDynamic, darkDynamic) {
         return MaterialApp(
-          title: AppConstants.appName,
+          title: AppConstants.appFullName,
           debugShowCheckedModeBanner: false,
 
           // ── Themes

@@ -24,6 +24,9 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
       onboardingComplete:
           prefs.getBool(AppConstants.prefsOnboardingDone) ?? false,
       vaultEnabled: prefs.getBool(AppConstants.prefsVaultSetup) ?? false,
+      gridColumns:
+          prefs.getInt(AppConstants.prefsGridColumns) ??
+          AppConstants.gridCrossAxisCountDefault,
     );
   }
 
@@ -52,7 +55,13 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
   }
 
   Future<void> setGridColumns(int value) async {
-    state = state.copyWith(gridColumns: value);
+    final clamped = value.clamp(
+      AppConstants.gridCrossAxisCountMin,
+      AppConstants.gridCrossAxisCountMax,
+    );
+    final prefs = ref.read(sharedPrefsProvider);
+    await prefs.setInt(AppConstants.prefsGridColumns, clamped);
+    state = state.copyWith(gridColumns: clamped);
   }
 }
 

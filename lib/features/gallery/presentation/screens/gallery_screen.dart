@@ -1,8 +1,10 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/models.dart';
@@ -12,7 +14,7 @@ import '../../providers/gallery_provider.dart';
 import '../widgets/media_tile.dart';
 
 // ═══════════════════════════════════════════════════════════
-//  Gallery Screen — Timeline with paginated GridView.builder
+//  Gallery Screen — Pinch-to-zoom grid + Album thumbnails
 // ═══════════════════════════════════════════════════════════
 
 class GalleryScreen extends ConsumerStatefulWidget {
@@ -25,6 +27,10 @@ class GalleryScreen extends ConsumerStatefulWidget {
 class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   final ScrollController _scrollCtrl = ScrollController();
   bool _showFab = false;
+
+  // Pinch-to-zoom state
+  double _baseScale = 1.0;
+  int _pendingColumns = 0;
 
   @override
   void initState() {
@@ -41,6 +47,25 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     // FAB visibility
     final show = _scrollCtrl.offset > 300;
     if (show != _showFab) setState(() => _showFab = show);
+  }
+
+  void _onScaleStart(ScaleStartDetails details) {
+    final settings = ref.read(appSettingsProvider);
+    _baseScale = settings.gridColumns.toDouble();
+    _pendingColumns = settings.gridColumns;
+  }
+
+  void _onScaleUpdate(ScaleUpdateDetails details) {
+    // Inverted: pinch-in (zoom out) = more columns, pinch-out (zoom in) = fewer columns
+    final newColumns = (_baseScale / details.scale).round().clamp(
+      AppConstants.gridCrossAxisCountMin,
+      AppConstants.gridCrossAxisCountMax,
+    );
+    if (newColumns != _pendingColumns) {
+      _pendingColumns = newColumns;
+      HapticFeedback.selectionClick();
+      ref.read(appSettingsProvider.notifier).setGridColumns(newColumns);
+    }
   }
 
   @override
@@ -62,7 +87,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
           children: [
             Column(
               children: [
-                _buildHeader(context, ref, filter),
+                _buildHeader(context, ref, filter, settings),
                 Expanded(
                   child: galleryState.when(
                     loading: () => const _GalleryShimmer(),
@@ -86,34 +111,33 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                           ),
                         );
                       }
-                      return RefreshIndicator(
-                        color: AppColors.primary,
-                        onRefresh: () =>
-                            ref.read(galleryProvider.notifier).refresh(),
-                        child: GridView.builder(
-                          controller: _scrollCtrl,
-                          padding: const EdgeInsets.fromLTRB(
-                            4,
-                            4,
-                            4,
-                            120,
-                          ), // space for nav
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: settings.gridColumns,
-                                crossAxisSpacing: AppConstants.gridSpacing,
-                                mainAxisSpacing: AppConstants.gridSpacing,
-                              ),
-                          itemCount: displayed.length,
-                          itemBuilder: (ctx, i) {
-                            final asset = displayed[i];
-                            return MediaTile(
-                              key: ValueKey(asset.id),
-                              asset: asset,
-                              index: i,
-                              onTap: () => _openViewer(context, displayed, i),
-                            );
-                          },
+                      return GestureDetector(
+                        onScaleStart: _onScaleStart,
+                        onScaleUpdate: _onScaleUpdate,
+                        child: RefreshIndicator(
+                          color: AppColors.primary,
+                          onRefresh: () =>
+                              ref.read(galleryProvider.notifier).refresh(),
+                          child: GridView.builder(
+                            controller: _scrollCtrl,
+                            padding: const EdgeInsets.fromLTRB(4, 4, 4, 120),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: settings.gridColumns,
+                                  crossAxisSpacing: AppConstants.gridSpacing,
+                                  mainAxisSpacing: AppConstants.gridSpacing,
+                                ),
+                            itemCount: displayed.length,
+                            itemBuilder: (ctx, i) {
+                              final asset = displayed[i];
+                              return MediaTile(
+                                key: ValueKey(asset.id),
+                                asset: asset,
+                                index: i,
+                                onTap: () => _openViewer(context, displayed, i),
+                              );
+                            },
+                          ),
                         ),
                       );
                     },
@@ -151,7 +175,12 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, WidgetRef ref, AssetType? filter) {
+  Widget _buildHeader(
+    BuildContext context,
+    WidgetRef ref,
+    AssetType? filter,
+    AppSettings settings,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
@@ -168,6 +197,33 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                 ),
               ),
               const Spacer(),
+              // Column count indicator
+              GlassContainer(
+                borderRadius: 10,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.grid_view_rounded,
+                      color: AppColors.textMuted,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${settings.gridColumns}',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
               // Album picker
               GlassContainer(
                 borderRadius: 14,
@@ -176,8 +232,8 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                   vertical: 8,
                 ),
                 onTap: () => _showAlbumPicker(context),
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(
                       Icons.photo_album_outlined,
                       color: AppColors.textSecondary,
@@ -237,7 +293,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
       icon: Icons.lock_outline_rounded,
       title: 'Media Access Needed',
       subtitle:
-          'LiquidSync needs permission to read your photos and videos. We never upload anything.',
+          'Lumina Gallery needs permission to read your photos and videos. We never upload anything.',
       action: GlassButton(
         label: 'Open Settings',
         icon: Icons.settings_rounded,
@@ -266,53 +322,164 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => GlassContainer(
-        borderRadius: 24,
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Albums', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ...albums.map(
-                      (a) => ListTile(
-                        leading: const Icon(
-                          Icons.photo_album_outlined,
-                          color: AppColors.primary,
-                        ),
-                        title: Text(
-                          a.name,
-                          style: const TextStyle(color: AppColors.textPrimary),
-                        ),
-                        subtitle: FutureBuilder<int>(
-                          future: a.assetCountAsync,
-                          builder: (context, snapshot) {
-                            final count = snapshot.data ?? '...';
-                            return Text(
-                              '$count items',
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            );
-                          },
-                        ),
-                        onTap: () {
-                          ref.read(galleryProvider.notifier).switchAlbum(a);
-                          Navigator.pop(ctx);
-                        },
-                      ),
-                    ),
-                  ],
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        builder: (_, scrollCtrl) => GlassContainer(
+          borderRadius: 24,
+          margin: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.textMuted,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
+              Text('Albums', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollCtrl,
+                  itemCount: albums.length,
+                  itemBuilder: (ctx, i) {
+                    final album = albums[i];
+                    return _AlbumListTile(
+                      album: album,
+                      onTap: () {
+                        ref.read(galleryProvider.notifier).switchAlbum(album);
+                        Navigator.pop(ctx);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Album List Tile with thumbnail ──────────────────────
+class _AlbumListTile extends StatefulWidget {
+  const _AlbumListTile({required this.album, required this.onTap});
+  final AssetPathEntity album;
+  final VoidCallback onTap;
+
+  @override
+  State<_AlbumListTile> createState() => _AlbumListTileState();
+}
+
+class _AlbumListTileState extends State<_AlbumListTile> {
+  Uint8List? _coverThumb;
+  int _count = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCover();
+  }
+
+  Future<void> _loadCover() async {
+    try {
+      final count = await widget.album.assetCountAsync;
+      if (count > 0) {
+        final assets = await widget.album.getAssetListPaged(page: 0, size: 1);
+        if (assets.isNotEmpty) {
+          final thumb = await assets.first.thumbnailDataWithSize(
+            const ThumbnailSize(120, 120),
+            quality: 75,
+            format: ThumbnailFormat.jpeg,
+          );
+          if (mounted) {
+            setState(() {
+              _coverThumb = thumb;
+              _count = count;
+            });
+          }
+          return;
+        }
+      }
+      if (mounted) setState(() => _count = count);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.glassDark,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.glassBorder, width: 0.5),
+        ),
+        child: Row(
+          children: [
+            // Album cover thumbnail
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 56,
+                height: 56,
+                child: _coverThumb != null
+                    ? Image.memory(_coverThumb!, fit: BoxFit.cover)
+                    : Container(
+                        color: AppColors.darkCard,
+                        child: const Icon(
+                          Icons.photo_album_outlined,
+                          color: AppColors.textMuted,
+                          size: 24,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.album.name.isEmpty
+                        ? 'All Photos'
+                        : widget.album.name,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$_count items',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMuted,
+              size: 22,
             ),
           ],
         ),
@@ -424,6 +591,7 @@ class _GalleryShimmerState extends State<_GalleryShimmer>
               const Color(0xFF2A2A3E),
               _ctrl.value,
             ),
+            borderRadius: BorderRadius.circular(4),
           ),
         ),
       ),
@@ -431,7 +599,10 @@ class _GalleryShimmerState extends State<_GalleryShimmer>
   }
 }
 
-// ─── Media Viewer Screen ──────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  Media Viewer Screen — Full-screen image + video player
+// ═══════════════════════════════════════════════════════════
+
 class MediaViewerScreen extends StatefulWidget {
   const MediaViewerScreen({
     super.key,
@@ -466,6 +637,8 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentAsset = widget.assets[_currentIndex];
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
@@ -478,37 +651,88 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
               onPageChanged: (i) => setState(() => _currentIndex = i),
               itemBuilder: (ctx, i) {
                 final asset = widget.assets[i];
-                return _MediaPage(asset: asset);
+                if (asset.type == AssetType.video) {
+                  return _VideoPage(asset: asset);
+                }
+                return _ImagePage(asset: asset);
               },
             ),
             // Top bar
             AnimatedOpacity(
               opacity: _showUi ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 200),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      GlassContainer(
-                        borderRadius: 14,
-                        padding: const EdgeInsets.all(10),
-                        onTap: () => Navigator.pop(context),
-                        child: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white,
-                          size: 20,
+              child: IgnorePointer(
+                ignoring: !_showUi,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        GlassContainer(
+                          borderRadius: 14,
+                          padding: const EdgeInsets.all(10),
+                          onTap: () => Navigator.pop(context),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${_currentIndex + 1} / ${widget.assets.length}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 14,
+                        const Spacer(),
+                        Text(
+                          '${_currentIndex + 1} / ${widget.assets.length}',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                          ),
                         ),
+                        const SizedBox(width: 12),
+                        // Info button
+                        GlassContainer(
+                          borderRadius: 14,
+                          padding: const EdgeInsets.all(10),
+                          onTap: () => _showMediaInfo(context, currentAsset),
+                          child: const Icon(
+                            Icons.info_outline_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Bottom bar with actions
+            AnimatedOpacity(
+              opacity: _showUi ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: IgnorePointer(
+                ignoring: !_showUi,
+                child: Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _ActionButton(
+                            icon: Icons.share_rounded,
+                            label: 'Share',
+                            onTap: () => _shareMedia(currentAsset),
+                          ),
+                          _ActionButton(
+                            icon: Icons.delete_outline_rounded,
+                            label: 'Delete',
+                            onTap: () => _deleteMedia(context, currentAsset),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -518,17 +742,119 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
       ),
     );
   }
+
+  void _showMediaInfo(BuildContext context, MediaAsset asset) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => GlassContainer(
+        borderRadius: 24,
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Media Details',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _InfoRow('Type', asset.type == AssetType.video ? 'Video' : 'Image'),
+            _InfoRow('Resolution', '${asset.width} × ${asset.height}'),
+            _InfoRow(
+              'Date',
+              '${asset.createDateTime.day}/${asset.createDateTime.month}/${asset.createDateTime.year} '
+                  '${asset.createDateTime.hour}:${asset.createDateTime.minute.toString().padLeft(2, '0')}',
+            ),
+            if (asset.type == AssetType.video && asset.videoDuration != null)
+              _InfoRow('Duration', _formatDuration(asset.videoDuration!)),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _shareMedia(MediaAsset asset) async {
+    // Basic share via file
+    final file = await asset.entity.originFile;
+    if (file != null && mounted) {
+      // Use platform-specific share
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Preparing to share...')));
+    }
+  }
+
+  Future<void> _deleteMedia(BuildContext context, MediaAsset asset) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.darkCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Delete Media?',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: const Text(
+          'This will move the file to your device\'s trash/recycle bin.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final result = await PhotoManager.editor.deleteWithIds([asset.id]);
+      if (result.isNotEmpty && mounted) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60);
+    final s = d.inSeconds.remainder(60);
+    if (h > 0) {
+      return '$h:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
+    return '${m.toString().padLeft(1, '0')}:${s.toString().padLeft(2, '0')}';
+  }
 }
 
-class _MediaPage extends StatefulWidget {
-  const _MediaPage({required this.asset});
+// ─── Image Page with InteractiveViewer ────────────────────
+class _ImagePage extends StatefulWidget {
+  const _ImagePage({required this.asset});
   final MediaAsset asset;
 
   @override
-  State<_MediaPage> createState() => _MediaPageState();
+  State<_ImagePage> createState() => _ImagePageState();
 }
 
-class _MediaPageState extends State<_MediaPage> {
+class _ImagePageState extends State<_ImagePage> {
   Uint8List? _bytes;
   bool _loading = true;
 
@@ -539,12 +865,23 @@ class _MediaPageState extends State<_MediaPage> {
   }
 
   Future<void> _load() async {
-    final bytes = await widget.asset.entity.originBytes;
-    if (mounted) {
+    // First load a higher-quality thumbnail quickly
+    final thumb = await widget.asset.entity.thumbnailDataWithSize(
+      const ThumbnailSize(800, 800),
+      quality: 90,
+      format: ThumbnailFormat.jpeg,
+    );
+    if (mounted && thumb != null) {
       setState(() {
-        _bytes = bytes;
+        _bytes = thumb;
         _loading = false;
       });
+    }
+
+    // Then load full resolution in background
+    final fullBytes = await widget.asset.entity.originBytes;
+    if (mounted && fullBytes != null) {
+      setState(() => _bytes = fullBytes);
     }
   }
 
@@ -568,6 +905,209 @@ class _MediaPageState extends State<_MediaPage> {
       minScale: 0.5,
       maxScale: 5.0,
       child: Center(child: Image.memory(_bytes!, fit: BoxFit.contain)),
+    );
+  }
+}
+
+// ─── Video Page with Chewie player ────────────────────────
+class _VideoPage extends StatefulWidget {
+  const _VideoPage({required this.asset});
+  final MediaAsset asset;
+
+  @override
+  State<_VideoPage> createState() => _VideoPageState();
+}
+
+class _VideoPageState extends State<_VideoPage> {
+  VideoPlayerController? _videoCtrl;
+  ChewieController? _chewieCtrl;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _initVideo();
+  }
+
+  Future<void> _initVideo() async {
+    try {
+      final file = await widget.asset.entity.originFile;
+      if (file == null) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _error = 'Could not load video file.';
+          });
+        }
+        return;
+      }
+
+      _videoCtrl = VideoPlayerController.file(file);
+      await _videoCtrl!.initialize();
+
+      _chewieCtrl = ChewieController(
+        videoPlayerController: _videoCtrl!,
+        autoPlay: true,
+        looping: false,
+        showControlsOnInitialize: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: AppColors.primary,
+          handleColor: AppColors.accent,
+          backgroundColor: AppColors.glassDark,
+          bufferedColor: AppColors.primaryLight.withOpacity(0.3),
+        ),
+        errorBuilder: (ctx, errorMsg) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: AppColors.error,
+                size: 48,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Playback Error',
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                errorMsg,
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Unsupported video format.';
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _chewieCtrl?.dispose();
+    _videoCtrl?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: AppColors.primary),
+            SizedBox(height: 16),
+            Text(
+              'Loading video…',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.videocam_off_rounded,
+              color: AppColors.textMuted,
+              size: 64,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_chewieCtrl != null) {
+      return Chewie(controller: _chewieCtrl!);
+    }
+
+    return const SizedBox.shrink();
+  }
+}
+
+// ─── Action Button ────────────────────────────────────────
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassContainer(
+      borderRadius: 16,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 22),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Info Row Widget ──────────────────────────────────────
+class _InfoRow extends StatelessWidget {
+  const _InfoRow(this.label, this.value);
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

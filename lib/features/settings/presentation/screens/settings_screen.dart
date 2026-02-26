@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/glass_widgets.dart';
 import '../../../settings/providers/settings_provider.dart';
 
 // ═══════════════════════════════════════════════════════════
-//  Settings Screen
+//  Settings Screen — Lumina Gallery
 // ═══════════════════════════════════════════════════════════
 
 class SettingsScreen extends ConsumerWidget {
@@ -38,13 +39,13 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Customize your LiquidSync experience.',
+                'Customize your Lumina Gallery experience.',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 28),
 
               // ── Appearance
-              _SectionHeader(label: 'APPEARANCE'),
+              const _SectionHeader(label: 'APPEARANCE'),
               const SizedBox(height: 12),
 
               _SettingsTile(
@@ -76,7 +77,7 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // ── Grid
-              _SectionHeader(label: 'GRID LAYOUT'),
+              const _SectionHeader(label: 'GRID LAYOUT'),
               const SizedBox(height: 12),
 
               _GridColumnPicker(
@@ -84,10 +85,23 @@ class SettingsScreen extends ConsumerWidget {
                 onChanged: (v) => notifier.setGridColumns(v),
               ),
 
+              const SizedBox(height: 6),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  '💡 Tip: Pinch-to-zoom on the gallery grid to quickly change columns',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 24),
 
               // ── Privacy
-              _SectionHeader(label: 'PRIVACY & DATA'),
+              const _SectionHeader(label: 'PRIVACY & DATA'),
               const SizedBox(height: 12),
 
               _SettingsTile(
@@ -95,7 +109,7 @@ class SettingsScreen extends ConsumerWidget {
                 iconColor: AppColors.accentWarm,
                 title: 'Secure Vault',
                 subtitle: settings.vaultEnabled
-                    ? 'Vault is active — biometrics protected'
+                    ? 'Vault is active — biometrics/PIN protected'
                     : 'Enable biometric-protected media vault',
                 trailing: Switch.adaptive(
                   value: settings.vaultEnabled,
@@ -121,16 +135,18 @@ class SettingsScreen extends ConsumerWidget {
 
               const SizedBox(height: 24),
 
+              // ── Supported Formats
+              const _SectionHeader(label: 'SUPPORTED FORMATS'),
+              const SizedBox(height: 12),
+              _FormatsCard(),
+
+              const SizedBox(height: 24),
+
               // ── About
-              _SectionHeader(label: 'ABOUT'),
+              const _SectionHeader(label: 'ABOUT'),
               const SizedBox(height: 12),
 
               _AboutCard(),
-
-              const SizedBox(height: 32),
-
-              // ── v2 teaser
-              _V2Teaser(),
             ],
           ),
         ),
@@ -248,16 +264,16 @@ class _GridColumnPicker extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [2, 3, 4].map((n) {
+            children: [2, 3, 4, 5, 6].map((n) {
               final selected = current == n;
               return GestureDetector(
                 onTap: () => onChanged(n),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  width: 72,
-                  height: 72,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                     gradient: selected
                         ? const LinearGradient(colors: AppColors.heroGradient)
                         : null,
@@ -277,7 +293,7 @@ class _GridColumnPicker extends StatelessWidget {
                           color: selected
                               ? Colors.white
                               : AppColors.textSecondary,
-                          fontSize: 24,
+                          fontSize: 20,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -287,7 +303,7 @@ class _GridColumnPicker extends StatelessWidget {
                           color: selected
                               ? Colors.white70
                               : AppColors.textMuted,
-                          fontSize: 11,
+                          fontSize: 10,
                         ),
                       ),
                     ],
@@ -297,6 +313,122 @@ class _GridColumnPicker extends StatelessWidget {
             }).toList(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Supported Formats Card ───────────────────────────────
+class _FormatsCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GlassContainer(
+      borderRadius: 16,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.accent.withOpacity(0.15),
+                ),
+                child: const Icon(
+                  Icons.image_rounded,
+                  color: AppColors.accent,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Images',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: AppConstants.supportedImageFormats
+                .take(12)
+                .map((f) => _FormatChip(f))
+                .toList(),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.primary.withOpacity(0.15),
+                ),
+                child: const Icon(
+                  Icons.videocam_rounded,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Videos',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: AppConstants.supportedVideoFormats
+                .map((f) => _FormatChip(f))
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FormatChip extends StatelessWidget {
+  const _FormatChip(this.format);
+  final String format;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.glassDark,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.glassBorder, width: 0.5),
+      ),
+      child: Text(
+        format.toUpperCase(),
+        style: const TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
@@ -328,17 +460,17 @@ class _AboutCard extends StatelessWidget {
                   ),
                 ),
                 child: const Icon(
-                  Icons.water_drop_rounded,
+                  Icons.auto_awesome_rounded,
                   color: Colors.white,
                   size: 30,
                 ),
               ),
               const SizedBox(width: 16),
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
-                    'LiquidSync Gallery',
+                    'Lumina Gallery',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
@@ -346,7 +478,7 @@ class _AboutCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Version 1.0.0',
+                    'Version ${AppConstants.appVersion}',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,
@@ -360,9 +492,10 @@ class _AboutCard extends StatelessWidget {
           const Divider(color: AppColors.glassBorder, height: 1),
           const SizedBox(height: 16),
           const Text(
-            '💧 Digital Sovereignty. Your media stays on your device.\n'
+            '✦ Pure Privacy — Digital Sovereignty\n'
             '🔒 Vault-protected privacy. No cloud. No tracking.\n'
-            '📡 LAN Share gives a cloud-like experience, locally.',
+            '📡 LAN Share gives a cloud-like experience, locally.\n'
+            '⚡ Lightning-fast gallery with gesture controls.',
             style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
@@ -371,98 +504,6 @@ class _AboutCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ─── v2 Feature Teaser ────────────────────────────────────
-class _V2Teaser extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final features = [
-      (
-        Icons.smart_toy_outlined,
-        'On-Device AI Tagging',
-        'Search "Dog", "Beach" — no cloud needed. Coming v2.0',
-      ),
-      (
-        Icons.desktop_windows_outlined,
-        'Desktop Apps',
-        'Windows & macOS native apps for a full ecosystem',
-      ),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _SectionHeader(label: 'COMING SOON — v2.0'),
-        const SizedBox(height: 12),
-        ...features.map((f) {
-          final (icon, title, subtitle) = f;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: GlassContainer(
-              borderRadius: 14,
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      color: AppColors.primaryLight.withOpacity(0.12),
-                    ),
-                    child: Icon(icon, color: AppColors.primaryLight, size: 20),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          subtitle,
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: AppColors.primary.withOpacity(0.15),
-                    ),
-                    child: const Text(
-                      'Soon',
-                      style: TextStyle(
-                        color: AppColors.primaryLight,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ],
     );
   }
 }

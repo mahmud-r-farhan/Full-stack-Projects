@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- ══════════════════════════════════════════════════════════
-         LiquidSync Gallery — Required Permissions
+         Lumina Gallery — Required Permissions
          ════════════════════════════════════════════════════════ -->
 
     <!-- Media access (Android 13+) -->
@@ -32,7 +32,7 @@
     <uses-feature android:name="android.hardware.fingerprint" android:required="false" />
 
     <application
-        android:label="LiquidSync"
+        android:label="Lumina Gallery"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true"

@@ -53,11 +53,12 @@ class _LockedView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          const SizedBox(height: 40),
           // Vault icon
           Container(
                 width: 120,
@@ -94,7 +95,7 @@ class _LockedView extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Your most private moments, protected by biometrics.\nNothing stored here is visible to other apps.',
+            'Your most private moments, protected by biometrics or device PIN.\nNothing stored here is visible to other apps.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.textSecondary,
@@ -105,27 +106,30 @@ class _LockedView extends ConsumerWidget {
           if (errorMessage != null) ...[
             const SizedBox(height: 16),
             GlassContainer(
-              borderRadius: 12,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              borderRadius: 14,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(
                     Icons.warning_rounded,
-                    color: AppColors.error,
-                    size: 16,
+                    color: AppColors.warning,
+                    size: 18,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    errorMessage!,
-                    style: const TextStyle(
-                      color: AppColors.error,
-                      fontSize: 13,
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      errorMessage!,
+                      style: const TextStyle(
+                        color: AppColors.warning,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
+            ).animate().fadeIn().slideY(begin: 0.1),
           ],
           const SizedBox(height: 40),
           GlassButton(
@@ -139,9 +143,9 @@ class _LockedView extends ConsumerWidget {
           GlassContainer(
             borderRadius: 14,
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 Icon(
                   Icons.info_outline_rounded,
                   color: AppColors.textMuted,
@@ -149,12 +153,22 @@ class _LockedView extends ConsumerWidget {
                 ),
                 SizedBox(width: 8),
                 Text(
-                  'Biometrics or device PIN accepted',
+                  'Biometrics, PIN, or pattern accepted',
                   style: TextStyle(color: AppColors.textMuted, fontSize: 13),
                 ),
               ],
             ),
           ).animate().fadeIn(delay: 400.ms),
+          const SizedBox(height: 20),
+          // Privacy assurance
+          const Text(
+            '🛡️ Pure Privacy — Digital Sovereignty',
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+            ),
+          ).animate().fadeIn(delay: 500.ms),
         ],
       ),
     );
@@ -190,6 +204,27 @@ class _UnlockedView extends ConsumerWidget {
                 ),
               ),
               const Spacer(),
+              // Count badge
+              if (state.assets.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentWarm.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${state.assets.length}',
+                    style: const TextStyle(
+                      color: AppColors.accentWarm,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               // Lock button
               GlassContainer(
                 borderRadius: 12,
@@ -198,8 +233,8 @@ class _UnlockedView extends ConsumerWidget {
                   vertical: 8,
                 ),
                 onTap: () => ref.read(vaultProvider.notifier).lock(),
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(
                       Icons.lock_rounded,
                       color: AppColors.accentWarm,
