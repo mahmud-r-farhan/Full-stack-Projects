@@ -276,33 +276,42 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
           children: [
             Text('Albums', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
-            ...albums.map(
-              (a) => ListTile(
-                leading: const Icon(
-                  Icons.photo_album_outlined,
-                  color: AppColors.primary,
-                ),
-                title: Text(
-                  a.name,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                ),
-                subtitle: FutureBuilder<int>(
-                  future: a.assetCountAsync,
-                  builder: (context, snapshot) {
-                    final count = snapshot.data ?? '...';
-                    return Text(
-                      '$count items',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ...albums.map(
+                      (a) => ListTile(
+                        leading: const Icon(
+                          Icons.photo_album_outlined,
+                          color: AppColors.primary,
+                        ),
+                        title: Text(
+                          a.name,
+                          style: const TextStyle(color: AppColors.textPrimary),
+                        ),
+                        subtitle: FutureBuilder<int>(
+                          future: a.assetCountAsync,
+                          builder: (context, snapshot) {
+                            final count = snapshot.data ?? '...';
+                            return Text(
+                              '$count items',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            );
+                          },
+                        ),
+                        onTap: () {
+                          ref.read(galleryProvider.notifier).switchAlbum(a);
+                          Navigator.pop(ctx);
+                        },
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
-                onTap: () {
-                  ref.read(galleryProvider.notifier).switchAlbum(a);
-                  Navigator.pop(ctx);
-                },
               ),
             ),
           ],

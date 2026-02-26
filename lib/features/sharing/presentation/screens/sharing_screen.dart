@@ -165,7 +165,7 @@ class _ShareCard extends ConsumerWidget {
               borderRadius: 12,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: MainAxisSize.max,
                 children: [
                   const Icon(
                     Icons.link_rounded,
@@ -173,13 +173,16 @@ class _ShareCard extends ConsumerWidget {
                     size: 18,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    serverInfo.url,
-                    style: const TextStyle(
-                      color: AppColors.accent,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'monospace',
+                  Expanded(
+                    child: Text(
+                      serverInfo.url,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'monospace',
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),

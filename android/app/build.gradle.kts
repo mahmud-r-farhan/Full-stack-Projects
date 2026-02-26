@@ -22,10 +22,10 @@ android {
     defaultConfig {
         applicationId = "com.liquidsync.liquidsync_gallery"
         // minSdk 23: required by local_auth (biometrics) + flutter_secure_storage
-        minSdk = 23
-        // targetSdk 35: Android 15 latest
-        targetSdk = 35
-        compileSdk = 35
+        minSdk = flutter.minSdkVersion
+        // targetSdk 36: Android 16 with compatible plugins
+        targetSdk = 36
+        compileSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         // Multidex for large dependency trees

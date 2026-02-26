@@ -1,5 +1,6 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +16,14 @@ import 'features/shell/shell_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ── Full-screen immersive mode (hides system navigation)
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+  
+  // ── Portrait orientation only
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
 
   // ── Pre-warm photo manager (suppresses cold-start jank)
   PhotoManager.setLog(false);
