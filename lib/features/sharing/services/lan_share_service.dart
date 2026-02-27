@@ -81,7 +81,6 @@ class LanShareService {
 
       final handler = Pipeline()
           .addMiddleware(logRequests())
-          .addMiddleware(_corsMiddleware())
           .addHandler(router.call);
 
       _server = await shelf_io.serve(
@@ -125,10 +124,28 @@ class LanShareService {
 
   Future<Response> _handleAlbums(Request req) async {
     try {
+      // Check permissions first
+      final permission = await PhotoManager.requestPermissionExtend();
+      if (!permission.isAuth) {
+        return Response.forbidden(
+          jsonEncode({
+            'error': 'Photo library access denied',
+            'details': 'Grant permission in app settings to access photos',
+            'code': 'PERMISSION_DENIED',
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+
       final albums = await PhotoManager.getAssetPathList(
         type: RequestType.common,
         hasAll: true,
       );
+
+      if (albums.isEmpty) {
+        return _jsonResponse([]);
+      }
+
       final data = await Future.wait(
         albums.map(
           (a) async => {
@@ -141,7 +158,12 @@ class LanShareService {
       return _jsonResponse(data);
     } catch (e) {
       return Response.internalServerError(
-        body: jsonEncode({'error': e.toString()}),
+        body: jsonEncode({
+          'error': 'Failed to load albums',
+          'details': e.toString(),
+          'code': 'ALBUMS_LOAD_ERROR',
+        }),
+        headers: {'Content-Type': 'application/json'},
       );
     }
   }
@@ -153,6 +175,16 @@ class LanShareService {
       final size = int.tryParse(req.url.queryParameters['size'] ?? '60') ?? 60;
 
       final albums = await PhotoManager.getAssetPathList(hasAll: true);
+      if (albums.isEmpty) {
+        return _jsonResponse({
+          'total': 0,
+          'page': page,
+          'pageSize': size,
+          'hasMore': false,
+          'assets': [],
+        });
+      }
+
       final album = albums.firstWhere(
         (a) => a.id == albumId,
         orElse: () => albums.first,
@@ -187,7 +219,12 @@ class LanShareService {
       return _jsonResponse(data);
     } catch (e) {
       return Response.internalServerError(
-        body: jsonEncode({'error': e.toString()}),
+        body: jsonEncode({
+          'error': 'Failed to load assets',
+          'details': e.toString(),
+          'code': 'ASSETS_LOAD_ERROR',
+        }),
+        headers: {'Content-Type': 'application/json'},
       );
     }
   }
@@ -258,30 +295,7 @@ class LanShareService {
     }
   }
 
-  // ─── Helpers ─────────────────────────────────────────────
 
-  Middleware _corsMiddleware() => (Handler innerHandler) {
-    return (Request request) async {
-      if (request.method == 'OPTIONS') {
-        return Response.ok(
-          '',
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Range',
-          },
-        );
-      }
-      final response = await innerHandler(request);
-      return response.change(
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Range',
-        },
-      );
-    };
-  };
 
   Response _jsonResponse(dynamic data) => Response.ok(
     jsonEncode(data),
@@ -1103,6 +1117,14 @@ class LanShareService {
   async function loadAlbums() {
     try {
       const res = await fetch(API_BASE + '/albums');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMsg = errorData.error || 'Failed to load albums (HTTP ' + res.status + ')';
+        const details = errorData.details || (errorData.code === 'PERMISSION_DENIED' ? 'Check app permissions' : 'Server error');
+        document.getElementById('album-list').innerHTML = '<div class="empty-state" style="padding:20px;"><span>⚠️</span> ' + errorMsg + '<br/><small>' + details + '</small></div>';
+        console.error('Albums API error:', errorData);
+        return;
+      }
       const albums = await res.json();
       allAlbums = albums;
 
@@ -1110,7 +1132,7 @@ class LanShareService {
       albumList.innerHTML = '';
 
       if (!albums || albums.length === 0) {
-        albumList.innerHTML = '<div class="empty-state" style="padding:20px;"><span>📂</span> No albums</div>';
+        albumList.innerHTML = '<div class="empty-state" style="padding:20px;"><span>📂</span> No albums<br/><small style="color:var(--text-muted);">No photos or videos found</small></div>';
         return;
       }
 
@@ -1127,7 +1149,7 @@ class LanShareService {
         loadAlbumAssets(allAlbums[0].id, allAlbums[0].name || 'All Photos');
       }
     } catch (err) {
-      document.getElementById('album-list').innerHTML = '<div class="empty-state" style="padding:20px;color:var(--text-muted);"><span>⚠️</span> Failed to load</div>';
+      document.getElementById('album-list').innerHTML = '<div class="empty-state" style="padding:20px;color:var(--text-muted);"><span>⚠️</span> Error<br/><small>' + (err.message || 'Failed to load') + '</small></div>';
       console.error('Failed to load albums:', err);
     }
   }
