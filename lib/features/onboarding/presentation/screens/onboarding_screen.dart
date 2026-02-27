@@ -307,7 +307,7 @@ class _OnboardPageView extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: page.gradient.first.withOpacity(0.5),
+                      color: page.gradient.first.withValues(alpha: 0.5),
                       blurRadius: 48,
                       spreadRadius: 8,
                     ),
@@ -366,9 +366,9 @@ class _OnboardPageView extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
-                        color: AppColors.success.withOpacity(0.15),
+                        color: AppColors.success.withValues(alpha: 0.15),
                         border: Border.all(
-                          color: AppColors.success.withOpacity(0.4),
+                          color: AppColors.success.withValues(alpha: 0.4),
                         ),
                       ),
                       child: const Row(

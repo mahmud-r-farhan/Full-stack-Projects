@@ -332,7 +332,7 @@ class _VaultTileState extends State<_VaultTile> {
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  AppColors.accentWarm.withOpacity(0.15),
+                  AppColors.accentWarm.withValues(alpha: 0.15),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,

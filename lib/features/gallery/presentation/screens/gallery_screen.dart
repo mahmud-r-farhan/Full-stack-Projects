@@ -105,23 +105,31 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
             Row(
               children: [
                 // Sidebar with albums (responsive) — desktop only
-                if (!isMobile)
-                  _buildSidebar(context, ref, settings),
+                if (!isMobile) _buildSidebar(context, ref, settings),
                 // Main content
                 Expanded(
                   child: Stack(
                     children: [
                       Column(
                         children: [
-                          _buildHeader(context, ref, filter, settings, isMobile),
+                          _buildHeader(
+                            context,
+                            ref,
+                            filter,
+                            settings,
+                            isMobile,
+                          ),
                           Expanded(
                             child: galleryState.when(
                               loading: () => const _GalleryShimmer(),
-                              error: (e, _) => _buildPermissionError(context, ref),
+                              error: (e, _) =>
+                                  _buildPermissionError(context, ref),
                               data: (assets) {
                                 final displayed = filter == null
                                     ? assets
-                                    : assets.where((a) => a.type == filter).toList();
+                                    : assets
+                                          .where((a) => a.type == filter)
+                                          .toList();
                                 if (displayed.isEmpty) {
                                   return EmptyState(
                                     icon: Icons.photo_library_outlined,
@@ -142,8 +150,9 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                                   onScaleUpdate: _onScaleUpdate,
                                   child: RefreshIndicator(
                                     color: AppColors.primary,
-                                    onRefresh: () =>
-                                        ref.read(galleryProvider.notifier).refresh(),
+                                    onRefresh: () => ref
+                                        .read(galleryProvider.notifier)
+                                        .refresh(),
                                     child: GridView.builder(
                                       controller: _scrollCtrl,
                                       padding: EdgeInsets.fromLTRB(
@@ -154,7 +163,8 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                                       ),
                                       gridDelegate:
                                           SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: settings.gridColumns,
+                                            crossAxisCount:
+                                                settings.gridColumns,
                                             crossAxisSpacing:
                                                 AppConstants.gridSpacing,
                                             mainAxisSpacing:
@@ -167,8 +177,11 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                                           key: ValueKey(asset.id),
                                           asset: asset,
                                           index: i,
-                                          onTap: () =>
-                                              _openViewer(context, displayed, i),
+                                          onTap: () => _openViewer(
+                                            context,
+                                            displayed,
+                                            i,
+                                          ),
                                         );
                                       },
                                     ),
@@ -184,22 +197,26 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                         Positioned(
                           bottom: 110,
                           right: 20,
-                          child: GlassContainer(
-                            borderRadius: 20,
-                            padding: const EdgeInsets.all(12),
-                            onTap: () => _scrollCtrl.animateTo(
-                              0,
-                              duration: const Duration(milliseconds: 400),
-                              curve: Curves.easeInOut,
-                            ),
-                            child: const Icon(
-                              Icons.keyboard_arrow_up_rounded,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ).animate().scale(begin: const Offset(0, 0)).fadeIn(
-                                duration: 200.ms,
-                              ),
+                          child:
+                              GlassContainer(
+                                    borderRadius: 20,
+                                    padding: const EdgeInsets.all(12),
+                                    onTap: () => _scrollCtrl.animateTo(
+                                      0,
+                                      duration: const Duration(
+                                        milliseconds: 400,
+                                      ),
+                                      curve: Curves.easeInOut,
+                                    ),
+                                    child: const Icon(
+                                      Icons.keyboard_arrow_up_rounded,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                  )
+                                  .animate()
+                                  .scale(begin: const Offset(0, 0))
+                                  .fadeIn(duration: 200.ms),
                         ),
                     ],
                   ),
@@ -246,10 +263,10 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     return Container(
       width: isMobile ? 280 : 260,
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
+        color: Colors.black.withValues(alpha: 0.3),
         border: Border(
           right: BorderSide(
-            color: AppColors.glassBorder.withOpacity(0.5),
+            color: AppColors.glassBorder.withValues(alpha: 0.5),
             width: 0.5,
           ),
         ),
@@ -351,7 +368,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppColors.glassBorder.withOpacity(0.3),
+            color: AppColors.glassBorder.withValues(alpha: 0.3),
             width: 0.5,
           ),
         ),
@@ -380,8 +397,9 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
               Expanded(
                 child: GradientText(
                   'Gallery',
-                  gradient:
-                      const LinearGradient(colors: AppColors.heroGradient),
+                  gradient: const LinearGradient(
+                    colors: AppColors.heroGradient,
+                  ),
                   style: TextStyle(
                     fontSize: isMobile ? 28 : 32,
                     fontWeight: FontWeight.w800,
@@ -805,13 +823,11 @@ class _AlbumSidebarItemState extends State<_AlbumSidebarItem> {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: _isHovering
-                ? AppColors.glassDark.withOpacity(0.6)
+                ? AppColors.glassDark.withValues(alpha: 0.6)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: _isHovering
-                  ? AppColors.glassBorder
-                  : Colors.transparent,
+              color: _isHovering ? AppColors.glassBorder : Colors.transparent,
               width: 0.5,
             ),
           ),
@@ -1154,7 +1170,7 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
     );
     if (confirmed == true) {
       final result = await PhotoManager.editor.deleteWithIds([asset.id]);
-      if (result.isNotEmpty && mounted) {
+      if (result.isNotEmpty && context.mounted) {
         Navigator.of(context).pop();
       }
     }
@@ -1281,7 +1297,7 @@ class _VideoPageState extends State<_VideoPage> {
           playedColor: AppColors.primary,
           handleColor: AppColors.accent,
           backgroundColor: AppColors.glassDark,
-          bufferedColor: AppColors.primaryLight.withOpacity(0.3),
+          bufferedColor: AppColors.primaryLight.withValues(alpha: 0.3),
         ),
         errorBuilder: (ctx, errorMsg) => Center(
           child: Column(

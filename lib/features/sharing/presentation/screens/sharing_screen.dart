@@ -266,7 +266,7 @@ class _PulsingIcon extends StatelessWidget {
             gradient: LinearGradient(colors: gradient),
             boxShadow: [
               BoxShadow(
-                color: gradient.first.withOpacity(0.5),
+                color: gradient.first.withValues(alpha: 0.5),
                 blurRadius: 24,
                 spreadRadius: 4,
               ),
@@ -347,7 +347,7 @@ class _RunningFeatures extends StatelessWidget {
                     height: 42,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: color.withOpacity(0.15),
+                      color: color.withValues(alpha: 0.15),
                     ),
                     child: Icon(icon, color: color, size: 22),
                   ),
@@ -378,7 +378,7 @@ class _RunningFeatures extends StatelessWidget {
                   ),
                   Icon(
                     Icons.check_circle_rounded,
-                    color: AppColors.success.withOpacity(0.7),
+                    color: AppColors.success.withValues(alpha: 0.7),
                     size: 18,
                   ),
                 ],
@@ -442,7 +442,7 @@ class _HowItWorks extends StatelessWidget {
                     height: 46,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: color.withOpacity(0.15),
+                      color: color.withValues(alpha: 0.15),
                     ),
                     child: Icon(icon, color: color, size: 24),
                   ),

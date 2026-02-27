@@ -55,7 +55,7 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: 'Enable dark theme (recommended)',
                 trailing: Switch.adaptive(
                   value: settings.isDarkMode,
-                  activeColor: AppColors.primary,
+                  activeTrackColor: AppColors.primary,
                   onChanged: (v) => notifier.setDarkMode(v),
                 ),
               ),
@@ -69,7 +69,7 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: 'Reduce blur/animations for low-end devices',
                 trailing: Switch.adaptive(
                   value: settings.isPerformanceMode,
-                  activeColor: AppColors.accent,
+                  activeTrackColor: AppColors.accent,
                   onChanged: (v) => notifier.setPerformanceMode(v),
                 ),
               ),
@@ -113,7 +113,7 @@ class SettingsScreen extends ConsumerWidget {
                     : 'Enable biometric-protected media vault',
                 trailing: Switch.adaptive(
                   value: settings.vaultEnabled,
-                  activeColor: AppColors.accentWarm,
+                  activeTrackColor: AppColors.accentWarm,
                   onChanged: (v) => notifier.setVaultEnabled(v),
                 ),
               ),
@@ -128,7 +128,7 @@ class SettingsScreen extends ConsumerWidget {
                     'Opt-in: Send anonymous crash logs to help improve the app',
                 trailing: Switch.adaptive(
                   value: settings.crashReportingOptIn,
-                  activeColor: AppColors.primary,
+                  activeTrackColor: AppColors.primary,
                   onChanged: (v) {},
                 ),
               ),
@@ -202,7 +202,7 @@ class _SettingsTile extends StatelessWidget {
             height: 42,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: iconColor.withOpacity(0.15),
+              color: iconColor.withValues(alpha: 0.15),
             ),
             child: Icon(icon, color: iconColor, size: 22),
           ),
@@ -335,7 +335,7 @@ class _FormatsCard extends StatelessWidget {
                 height: 34,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: AppColors.accent.withOpacity(0.15),
+                  color: AppColors.accent.withValues(alpha: 0.15),
                 ),
                 child: const Icon(
                   Icons.image_rounded,
@@ -373,7 +373,7 @@ class _FormatsCard extends StatelessWidget {
                 height: 34,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: AppColors.primary.withOpacity(0.15),
+                  color: AppColors.primary.withValues(alpha: 0.15),
                 ),
                 child: const Icon(
                   Icons.videocam_rounded,
