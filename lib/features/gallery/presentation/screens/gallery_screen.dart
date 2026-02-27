@@ -27,6 +27,7 @@ class GalleryScreen extends ConsumerStatefulWidget {
 class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   final ScrollController _scrollCtrl = ScrollController();
   bool _showFab = false;
+  bool _sidebarOpen = true;
 
   // Pinch-to-zoom state
   double _baseScale = 1.0;
@@ -36,6 +37,20 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   void initState() {
     super.initState();
     _scrollCtrl.addListener(_onScroll);
+    // Check if device is mobile/tablet
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateSidebarVisibility();
+    });
+  }
+
+  void _updateSidebarVisibility() {
+    final width = MediaQuery.of(context).size.width;
+    if (width < 768) {
+      // Mobile: hide sidebar by default
+      if (mounted && _sidebarOpen) {
+        setState(() => _sidebarOpen = false);
+      }
+    }
   }
 
   void _onScroll() {
@@ -79,98 +94,219 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     final galleryState = ref.watch(galleryProvider);
     final filter = ref.watch(mediaFilterProvider);
     final settings = ref.watch(appSettingsProvider);
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 768;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
-        child: Stack(
+        child: Row(
           children: [
-            Column(
-              children: [
-                _buildHeader(context, ref, filter, settings),
-                Expanded(
-                  child: galleryState.when(
-                    loading: () => const _GalleryShimmer(),
-                    error: (e, _) => _buildPermissionError(context, ref),
-                    data: (assets) {
-                      final displayed = filter == null
-                          ? assets
-                          : assets.where((a) => a.type == filter).toList();
-                      if (displayed.isEmpty) {
-                        return EmptyState(
-                          icon: Icons.photo_library_outlined,
-                          title: 'No Media Found',
-                          subtitle:
-                              'Your gallery appears empty or media access is restricted.',
-                          action: GlassButton(
-                            label: 'Grant Access',
-                            icon: Icons.lock_open_rounded,
-                            onPressed: () async {
-                              await PhotoManager.openSetting();
-                            },
-                          ),
-                        );
-                      }
-                      return GestureDetector(
-                        onScaleStart: _onScaleStart,
-                        onScaleUpdate: _onScaleUpdate,
-                        child: RefreshIndicator(
-                          color: AppColors.primary,
-                          onRefresh: () =>
-                              ref.read(galleryProvider.notifier).refresh(),
-                          child: GridView.builder(
-                            controller: _scrollCtrl,
-                            padding: const EdgeInsets.fromLTRB(4, 4, 4, 120),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: settings.gridColumns,
-                                  crossAxisSpacing: AppConstants.gridSpacing,
-                                  mainAxisSpacing: AppConstants.gridSpacing,
+            // Sidebar with albums (responsive)
+            if (!isMobile || _sidebarOpen)
+              _buildSidebar(context, ref, settings),
+            // Main content
+            Expanded(
+              child: Stack(
+                children: [
+                  Column(
+                    children: [
+                      _buildHeader(context, ref, filter, settings, isMobile),
+                      Expanded(
+                        child: galleryState.when(
+                          loading: () => const _GalleryShimmer(),
+                          error: (e, _) => _buildPermissionError(context, ref),
+                          data: (assets) {
+                            final displayed = filter == null
+                                ? assets
+                                : assets.where((a) => a.type == filter).toList();
+                            if (displayed.isEmpty) {
+                              return EmptyState(
+                                icon: Icons.photo_library_outlined,
+                                title: 'No Media Found',
+                                subtitle:
+                                    'Your gallery appears empty or media access is restricted.',
+                                action: GlassButton(
+                                  label: 'Grant Access',
+                                  icon: Icons.lock_open_rounded,
+                                  onPressed: () async {
+                                    await PhotoManager.openSetting();
+                                  },
                                 ),
-                            itemCount: displayed.length,
-                            itemBuilder: (ctx, i) {
-                              final asset = displayed[i];
-                              return MediaTile(
-                                key: ValueKey(asset.id),
-                                asset: asset,
-                                index: i,
-                                onTap: () => _openViewer(context, displayed, i),
                               );
-                            },
-                          ),
+                            }
+                            return GestureDetector(
+                              onScaleStart: _onScaleStart,
+                              onScaleUpdate: _onScaleUpdate,
+                              child: RefreshIndicator(
+                                color: AppColors.primary,
+                                onRefresh: () =>
+                                    ref.read(galleryProvider.notifier).refresh(),
+                                child: GridView.builder(
+                                  controller: _scrollCtrl,
+                                  padding: EdgeInsets.fromLTRB(
+                                    12,
+                                    12,
+                                    12,
+                                    120,
+                                  ),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: settings.gridColumns,
+                                        crossAxisSpacing:
+                                            AppConstants.gridSpacing,
+                                        mainAxisSpacing:
+                                            AppConstants.gridSpacing,
+                                      ),
+                                  itemCount: displayed.length,
+                                  itemBuilder: (ctx, i) {
+                                    final asset = displayed[i];
+                                    return MediaTile(
+                                      key: ValueKey(asset.id),
+                                      asset: asset,
+                                      index: i,
+                                      onTap: () =>
+                                          _openViewer(context, displayed, i),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  // Scroll to top FAB
+                  if (_showFab)
+                    Positioned(
+                      bottom: 110,
+                      right: 20,
+                      child: GlassContainer(
+                        borderRadius: 20,
+                        padding: const EdgeInsets.all(12),
+                        onTap: () => _scrollCtrl.animateTo(
+                          0,
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeInOut,
+                        ),
+                        child: const Icon(
+                          Icons.keyboard_arrow_up_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ).animate().scale(begin: const Offset(0, 0)).fadeIn(
+                            duration: 200.ms,
+                          ),
+                    ),
+                ],
+              ),
             ),
-            // Scroll to top FAB
-            if (_showFab)
-              Positioned(
-                bottom: 110,
-                right: 20,
-                child:
-                    GlassContainer(
-                          borderRadius: 20,
-                          padding: const EdgeInsets.all(12),
-                          onTap: () => _scrollCtrl.animateTo(
-                            0,
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeInOut,
-                          ),
-                          child: const Icon(
-                            Icons.keyboard_arrow_up_rounded,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        )
-                        .animate()
-                        .scale(begin: const Offset(0, 0))
-                        .fadeIn(duration: 200.ms),
+            // Mobile sidebar toggle overlay
+            if (isMobile && _sidebarOpen)
+              GestureDetector(
+                onTap: () => setState(() => _sidebarOpen = false),
+                child: Container(color: Colors.black26),
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSidebar(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+  ) {
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 768;
+
+    return Container(
+      width: isMobile ? 280 : 260,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        border: Border(
+          right: BorderSide(
+            color: AppColors.glassBorder.withOpacity(0.5),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Sidebar header
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.photo_album_outlined,
+                  color: AppColors.textSecondary,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Albums',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMuted,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                if (isMobile)
+                  GestureDetector(
+                    onTap: () => setState(() => _sidebarOpen = false),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      color: AppColors.textMuted,
+                      size: 18,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(
+            color: AppColors.glassBorder,
+            height: 0.5,
+            thickness: 0.5,
+          ),
+          // Albums list
+          Expanded(
+            child: FutureBuilder<List<AssetPathEntity>>(
+              future: PhotoManager.getAssetPathList(
+                type: RequestType.common,
+                onlyAll: false,
+              ),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  );
+                }
+
+                final albums = snapshot.data ?? [];
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: albums.length,
+                  itemBuilder: (ctx, i) => _AlbumSidebarItem(
+                    album: albums[i],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -180,23 +316,51 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
     WidgetRef ref,
     AssetType? filter,
     AppSettings settings,
+    bool isMobile,
   ) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.glassBorder.withOpacity(0.3),
+            width: 0.5,
+          ),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              GradientText(
-                'Gallery',
-                gradient: const LinearGradient(colors: AppColors.heroGradient),
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
+              if (isMobile)
+                GestureDetector(
+                  onTap: () => setState(() => _sidebarOpen = !_sidebarOpen),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: GlassContainer(
+                      borderRadius: 10,
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.menu_rounded,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: GradientText(
+                  'Gallery',
+                  gradient:
+                      const LinearGradient(colors: AppColors.heroGradient),
+                  style: TextStyle(
+                    fontSize: isMobile ? 28 : 32,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               // Column count indicator
               GlassContainer(
                 borderRadius: 10,
@@ -536,6 +700,126 @@ class _FilterChip extends StatelessWidget {
                 color: selected ? Colors.white : AppColors.textSecondary,
                 fontSize: 13,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Album Sidebar Item ──────────────────────────────────
+class _AlbumSidebarItem extends StatefulWidget {
+  const _AlbumSidebarItem({required this.album});
+  final AssetPathEntity album;
+
+  @override
+  State<_AlbumSidebarItem> createState() => _AlbumSidebarItemState();
+}
+
+class _AlbumSidebarItemState extends State<_AlbumSidebarItem> {
+  Uint8List? _coverThumb;
+  int _count = 0;
+  bool _isHovering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCover();
+  }
+
+  Future<void> _loadCover() async {
+    try {
+      final count = await widget.album.assetCountAsync;
+      if (count > 0) {
+        final assets = await widget.album.getAssetListPaged(page: 0, size: 1);
+        if (assets.isNotEmpty) {
+          final thumb = await assets.first.thumbnailDataWithSize(
+            const ThumbnailSize(80, 80),
+            quality: 70,
+            format: ThumbnailFormat.jpeg,
+          );
+          if (mounted) {
+            setState(() {
+              _coverThumb = thumb;
+              _count = count;
+            });
+          }
+          return;
+        }
+      }
+      if (mounted) setState(() => _count = count);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: _isHovering
+              ? AppColors.glassDark.withOpacity(0.6)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: _isHovering
+                ? AppColors.glassBorder
+                : Colors.transparent,
+            width: 0.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Album cover thumbnail
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: _coverThumb != null
+                    ? Image.memory(_coverThumb!, fit: BoxFit.cover)
+                    : Container(
+                        color: AppColors.darkCard,
+                        child: const Icon(
+                          Icons.photo_album_outlined,
+                          color: AppColors.textMuted,
+                          size: 18,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.album.name.isEmpty
+                        ? 'All Photos'
+                        : widget.album.name,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$_count',
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

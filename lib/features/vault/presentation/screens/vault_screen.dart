@@ -2,11 +2,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:photo_manager/photo_manager.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/models.dart';
 import '../../../../shared/widgets/glass_widgets.dart';
 import '../../providers/vault_provider.dart';
-import 'package:photo_manager/photo_manager.dart';
 
 // ═══════════════════════════════════════════════════════════
 //  Vault Screen — Biometric gate + hidden media grid
@@ -72,7 +72,7 @@ class _LockedView extends ConsumerWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.accentWarm.withOpacity(0.4),
+                      color: AppColors.accentWarm.withValues(alpha: 0.4),
                       blurRadius: 40,
                       spreadRadius: 8,
                     ),
@@ -213,7 +213,7 @@ class _UnlockedView extends ConsumerWidget {
                   ),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.accentWarm.withOpacity(0.15),
+                    color: AppColors.accentWarm.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -309,7 +309,7 @@ class _VaultTileState extends State<_VaultTile> {
 
   Future<void> _load() async {
     final bytes = await widget.asset.entity.thumbnailDataWithSize(
-      const ThumbnailSize(200, 200),
+      const ThumbnailSize.square(200),
       quality: 80,
     );
     if (mounted) setState(() => _thumb = bytes);

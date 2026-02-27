@@ -16,8 +16,8 @@ import '../../../data/models/models.dart';
 
 class VaultService {
   final LocalAuthentication _auth = LocalAuthentication();
-  final FlutterSecureStorage _storage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  final FlutterSecureStorage _storage = FlutterSecureStorage(
+    aOptions: const AndroidOptions(encryptedSharedPreferences: true),
   );
 
   static const String _vaultKey = 'vault_asset_ids';
