@@ -295,8 +295,6 @@ class LanShareService {
     }
   }
 
-
-
   Response _jsonResponse(dynamic data) => Response.ok(
     jsonEncode(data),
     headers: {'Content-Type': 'application/json'},
@@ -507,10 +505,11 @@ class LanShareService {
       overflow-y: auto;
       overflow-x: hidden;
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translateX(-100%);
     }
     
-    .sidebar.hidden {
-      transform: translateX(-100%);
+    .sidebar.visible {
+      transform: translateX(0);
     }
     
     .sidebar-header {
@@ -566,10 +565,6 @@ class LanShareService {
       overflow-y: auto;
     }
     
-    .main-content.with-sidebar {
-      margin-left: 280px;
-    }
-    
     .content-header {
       display: flex;
       align-items: center;
@@ -607,7 +602,7 @@ class LanShareService {
     }
     
     .toggle-sidebar-btn {
-      display: none;
+      display: flex;
       align-items: center;
       justify-content: center;
       width: 36px;
@@ -936,19 +931,58 @@ class LanShareService {
       }
     }
     
-    /* Responsive */
-    @media (max-width: 768px) {
+    /* Desktop — sidebar always visible */
+    @media (min-width: 769px) {
       .sidebar {
-        width: 100%;
-        z-index: 40;
+        transform: translateX(0) !important;
       }
       
-      .main-content.with-sidebar {
-        margin-left: 0;
+      .main-content {
+        margin-left: 280px;
       }
       
       .toggle-sidebar-btn {
-        display: flex;
+        display: none !important;
+      }
+      
+      .sidebar-overlay {
+        display: none !important;
+      }
+    }
+    
+    /* Large desktop — wider grid */
+    @media (min-width: 1200px) {
+      #grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 12px;
+      }
+      
+      .main-content {
+        padding: 32px;
+      }
+    }
+    
+    /* Responsive — tablet/mobile */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 280px;
+        z-index: 200;
+        box-shadow: 4px 0 30px rgba(0, 0, 0, 0.5);
+      }
+      
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 199;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+      
+      .sidebar-overlay.active {
+        opacity: 1;
+        visibility: visible;
       }
       
       .content-header {
@@ -1041,6 +1075,7 @@ class LanShareService {
   </header>
 
   <div class="main-wrapper">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">📁 Albums</div>
       <div class="album-list" id="album-list">
@@ -1073,7 +1108,7 @@ class LanShareService {
   <button class="lb-nav" id="lb-prev" title="Previous (←)">‹</button>
   <button class="lb-nav" id="lb-next" title="Next (→)">›</button>
   <div class="lb-inner">
-    <button class="lb-close" title="Close (Esc)">✕</button>
+   <button id="lb-close" class="lb-close" title="Close (Esc)">✕</button>
     <img id="lb-media" alt="media"/>
     <video id="lb-video" controls></video>
     <div class="lb-controls">
@@ -1098,18 +1133,31 @@ class LanShareService {
   const sidebar = document.getElementById('sidebar');
   const toggleBtn = document.getElementById('toggle-sidebar');
   const mainContent = document.getElementById('main-content');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
 
   // Toggle sidebar on mobile
-  toggleBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('hidden');
-    mainContent.classList.toggle('with-sidebar');
+  function toggleSidebar() {
+    const isVisible = sidebar.classList.contains('visible');
+    if (isVisible) {
+      sidebar.classList.remove('visible');
+      sidebarOverlay.classList.remove('active');
+    } else {
+      sidebar.classList.add('visible');
+      sidebarOverlay.classList.add('active');
+    }
+  }
+
+  toggleBtn.addEventListener('click', toggleSidebar);
+  sidebarOverlay.addEventListener('click', () => {
+    sidebar.classList.remove('visible');
+    sidebarOverlay.classList.remove('active');
   });
 
   // Close sidebar when clicking album on mobile
   function closeSidebarOnMobile() {
     if (window.innerWidth <= 768) {
-      sidebar.classList.add('hidden');
-      mainContent.classList.remove('with-sidebar');
+      sidebar.classList.remove('visible');
+      sidebarOverlay.classList.remove('active');
     }
   }
 
@@ -1224,20 +1272,21 @@ class LanShareService {
         bagdeHtml +
         '<div class="thumb-overlay">' +
         '<button class="thumb-btn" onclick="event.stopPropagation();openViewer(' + i + ')">View</button>' +
-        '<button class="thumb-btn" onclick="event.stopPropagation();download(' + "'" + '" + asset.fileUrl + "'" + ')">Save</button>' +
+        '<button class="thumb-btn" onclick="event.stopPropagation();download(' + "'" + asset.fileUrl + "'" + ')">Save</button>' +
         '</div>' +
         '</div>';
     }
     grid.innerHTML = html;
 
     // Load more button
-    if (hasMore) {
-      const btn = document.createElement('div');
-      btn.style.textAlign = 'center';
-      btn.style.marginTop = '24px';
-      btn.innerHTML = '<button class="lb-btn" onclick="loadMoreAssets()" style="cursor:pointer;">Load More</button>';
-      grid.parentElement.appendChild(btn);
-    }
+if (hasMore) {
+  const container = document.createElement('div');
+  container.className = 'load-more-container';
+  container.style.textAlign = 'center';
+  container.style.marginTop = '24px';
+  container.innerHTML = '<button class="lb-btn" onclick="loadMoreAssets()" style="cursor:pointer;">Load More</button>';
+  grid.parentElement.appendChild(container);
+}
   }
 
   function formatDuration(secs) {
@@ -1325,21 +1374,21 @@ class LanShareService {
     }
   });
 
-  // Lightbox navigation button events
-  document.getElementById('lb-prev').addEventListener('click', () => navigateViewer(-1));
-  document.getElementById('lb-next').addEventListener('click', () => navigateViewer(1));
-  document.getElementById('lb-close').addEventListener('click', closeLightbox);
+     // Lightbox navigation button events
+    document.getElementById('lb-prev').addEventListener('click', () => navigateViewer(-1));
+    document.getElementById('lb-next').addEventListener('click', () => navigateViewer(1));
+    document.getElementById('lb-close').addEventListener('click', closeLightbox);
 
-  // Lightbox background click to close
-  document.getElementById('lightbox').addEventListener('click', (e) => {
-    if (e.target.id === 'lightbox') closeLightbox();
-  });
+    // Lightbox background click to close
+    document.getElementById('lightbox').addEventListener('click', (e) => {
+      if (e.target.id === 'lightbox') closeLightbox();
+    });
 
-  // Touch swipe support for lightbox
-  let touchStart = { x: 0, y: 0 };
-  document.addEventListener('touchstart', (e) => {
-    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  });
+    // Touch swipe support for lightbox
+    let touchStart = { x: 0, y: 0 };
+    document.addEventListener('touchstart', (e) => {
+      touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    });
   document.addEventListener('touchend', (e) => {
     const lb = document.getElementById('lightbox');
     if (!lb.classList.contains('active')) return;

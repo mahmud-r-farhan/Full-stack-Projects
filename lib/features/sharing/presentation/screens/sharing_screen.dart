@@ -9,7 +9,7 @@ import '../../../../shared/widgets/glass_widgets.dart';
 import '../../providers/lan_share_provider.dart';
 
 // ═══════════════════════════════════════════════════════════
-//  LAN Sharing Screen — Professional sharing experience
+//  LAN Sharing Screen — Improved UI/UX
 // ═══════════════════════════════════════════════════════════
 
 class SharingScreen extends ConsumerWidget {
@@ -23,37 +23,72 @@ class SharingScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 120),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header
-              GradientText(
-                'LAN Share',
-                gradient: const LinearGradient(colors: AppColors.shareGradient),
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Share your gallery with any device on your Wi-Fi.\nNo internet needed — everything stays local.',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 32),
+              // ── Header with icon
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: const LinearGradient(
+                        colors: AppColors.shareGradient,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.shareGradient.first.withValues(
+                            alpha: 0.3,
+                          ),
+                          blurRadius: 16,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.wifi_tethering_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GradientText(
+                          'LAN Share',
+                          gradient: const LinearGradient(
+                            colors: AppColors.shareGradient,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const Text(
+                          'Share locally — no internet needed',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ).animate().fadeIn().slideX(begin: -0.05),
+              const SizedBox(height: 28),
 
               // ── Main share card
               _ShareCard(serverInfo: serverInfo),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // ── Features
-              if (serverInfo.isRunning) _RunningFeatures(),
-              if (!serverInfo.isRunning) _HowItWorks(),
+              // ── Features / How it works
+              if (serverInfo.isRunning) _RunningFeatures() else _HowItWorks(),
             ],
           ),
         ),
@@ -71,163 +106,28 @@ class _ShareCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return GlassContainer(
       borderRadius: 24,
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          // Status icon
+          // Status indicator
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 400),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
             child: serverInfo.isRunning
-                ? _PulsingIcon(
-                    key: const ValueKey('running'),
-                    icon: Icons.wifi_tethering_rounded,
-                    gradient: AppColors.shareGradient,
-                  )
+                ? _ActiveServerView(serverInfo: serverInfo)
                 : serverInfo.status == ServerStatus.starting
-                ? const SizedBox(
-                    key: ValueKey('starting'),
-                    width: 80,
-                    height: 80,
-                    child: CircularProgressIndicator(
-                      color: AppColors.accent,
-                      strokeWidth: 3,
-                    ),
-                  )
-                : Container(
-                    key: const ValueKey('stopped'),
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.glassDark,
-                      border: Border.all(
-                        color: AppColors.glassBorder,
-                        width: 1,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.wifi_off_rounded,
-                      color: AppColors.textMuted,
-                      size: 40,
-                    ),
-                  ),
-          ),
-          const SizedBox(height: 20),
-
-          // Status text
-          Text(
-            serverInfo.isRunning
-                ? 'Server Running'
-                : serverInfo.status == ServerStatus.starting
-                ? 'Starting…'
-                : serverInfo.status == ServerStatus.error
-                ? 'Connection Error'
-                : 'Server Stopped',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: serverInfo.isRunning
-                  ? AppColors.success
-                  : serverInfo.status == ServerStatus.error
-                  ? AppColors.error
-                  : AppColors.textSecondary,
-            ),
+                ? const _StartingView()
+                : const _StoppedView(),
           ),
 
-          // QR code + URL when running
-          if (serverInfo.isRunning) ...[
-            const SizedBox(height: 24),
-            // QR Code
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: QrImageView(
-                data: serverInfo.url,
-                version: QrVersions.auto,
-                size: 200,
-                backgroundColor: Colors.white,
-                eyeStyle: const QrEyeStyle(
-                  eyeShape: QrEyeShape.square,
-                  color: Color(0xFF0A0A14),
-                ),
-                dataModuleStyle: const QrDataModuleStyle(
-                  dataModuleShape: QrDataModuleShape.square,
-                  color: Color(0xFF0A0A14),
-                ),
-              ),
-            ).animate().scale(begin: const Offset(0.8, 0.8)).fadeIn(),
-            const SizedBox(height: 16),
-            // URL chip
-            GlassContainer(
-              borderRadius: 12,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  const Icon(
-                    Icons.link_rounded,
-                    color: AppColors.accent,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      serverInfo.url,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.accent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: serverInfo.url));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('URL copied!'),
-                          backgroundColor: AppColors.darkCard,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    child: const Icon(
-                      Icons.copy_rounded,
-                      color: AppColors.textSecondary,
-                      size: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Scan the QR or open the URL on any device',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-            ),
-          ],
+          const SizedBox(height: 24),
 
           // Error message
           if (serverInfo.status == ServerStatus.error) ...[
-            const SizedBox(height: 12),
-            Text(
-              serverInfo.errorMessage ?? 'Unknown error',
-              style: const TextStyle(color: AppColors.error, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
+            _ErrorBanner(message: serverInfo.errorMessage ?? 'Unknown error'),
+            const SizedBox(height: 16),
           ],
-
-          const SizedBox(height: 24),
 
           // Toggle button
           GlassButton(
@@ -250,43 +150,293 @@ class _ShareCard extends ConsumerWidget {
   }
 }
 
-// ─── Pulsing animated icon ────────────────────────────────
-class _PulsingIcon extends StatelessWidget {
-  const _PulsingIcon({super.key, required this.icon, required this.gradient});
-  final IconData icon;
-  final List<Color> gradient;
+// ─── Active Server View ──────────────────────────────────
+class _ActiveServerView extends StatelessWidget {
+  const _ActiveServerView({required this.serverInfo});
+  final LanServerInfo serverInfo;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-          width: 80,
-          height: 80,
+    return Column(
+      key: const ValueKey('active'),
+      children: [
+        // Status badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(colors: gradient),
+            color: AppColors.success.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.success,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.success.withValues(alpha: 0.5),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Server Active',
+                style: TextStyle(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
+        const SizedBox(height: 20),
+
+        // QR Code
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: gradient.first.withValues(alpha: 0.5),
+                color: AppColors.accent.withValues(alpha: 0.15),
                 blurRadius: 24,
                 spreadRadius: 4,
               ),
             ],
           ),
-          child: Icon(icon, color: Colors.white, size: 40),
-        )
-        .animate(onPlay: (c) => c.repeat())
-        .shimmer(duration: 2000.ms, color: Colors.white24)
-        .scale(
-          begin: const Offset(1, 1),
-          end: const Offset(1.08, 1.08),
-          duration: 1000.ms,
-        )
-        .then()
-        .scale(
-          begin: const Offset(1.08, 1.08),
-          end: const Offset(1.0, 1.0),
-          duration: 1000.ms,
-        );
+          child: QrImageView(
+            data: serverInfo.url,
+            version: QrVersions.auto,
+            size: 180,
+            backgroundColor: Colors.white,
+            eyeStyle: const QrEyeStyle(
+              eyeShape: QrEyeShape.square,
+              color: Color(0xFF0A0A14),
+            ),
+            dataModuleStyle: const QrDataModuleStyle(
+              dataModuleShape: QrDataModuleShape.square,
+              color: Color(0xFF0A0A14),
+            ),
+          ),
+        ).animate().scale(begin: const Offset(0.85, 0.85)).fadeIn(),
+        const SizedBox(height: 16),
+
+        // URL chip with copy button
+        GlassContainer(
+          borderRadius: 12,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.link_rounded, color: AppColors.accent, size: 16),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  serverInfo.url,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.accent,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _CopyButton(url: serverInfo.url),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Scan the QR code or open the URL on any device\non the same Wi-Fi network',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 12,
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Copy button with feedback ───────────────────────────
+class _CopyButton extends StatefulWidget {
+  const _CopyButton({required this.url});
+  final String url;
+
+  @override
+  State<_CopyButton> createState() => _CopyButtonState();
+}
+
+class _CopyButtonState extends State<_CopyButton> {
+  bool _copied = false;
+
+  void _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.url));
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _copy,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: _copied
+            ? const Icon(
+                Icons.check_rounded,
+                key: ValueKey('check'),
+                color: AppColors.success,
+                size: 18,
+              )
+            : const Icon(
+                Icons.copy_rounded,
+                key: ValueKey('copy'),
+                color: AppColors.textSecondary,
+                size: 16,
+              ),
+      ),
+    );
+  }
+}
+
+// ─── Starting View ────────────────────────────────────────
+class _StartingView extends StatelessWidget {
+  const _StartingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: const ValueKey('starting'),
+      children: [
+        const SizedBox(
+          width: 64,
+          height: 64,
+          child: CircularProgressIndicator(
+            color: AppColors.accent,
+            strokeWidth: 3,
+          ),
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          'Starting server…',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Setting up local network',
+          style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Stopped View ─────────────────────────────────────────
+class _StoppedView extends StatelessWidget {
+  const _StoppedView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: const ValueKey('stopped'),
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.glassDark,
+            border: Border.all(color: AppColors.glassBorder, width: 1),
+          ),
+          child: const Icon(
+            Icons.wifi_off_rounded,
+            color: AppColors.textMuted,
+            size: 40,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Server Stopped',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Tap the button below to start sharing\nyour gallery on the local network',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Error Banner ─────────────────────────────────────────
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassContainer(
+      borderRadius: 12,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.error.withValues(alpha: 0.15),
+            ),
+            child: const Icon(
+              Icons.error_outline_rounded,
+              color: AppColors.error,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: AppColors.error,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn().slideY(begin: 0.1);
   }
 }
 
@@ -324,19 +474,36 @@ class _RunningFeatures extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Active Features',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
+        Row(
+          children: [
+            Container(
+              width: 6,
+              height: 22,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: AppColors.shareGradient,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Active Features',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         ...features.asMap().entries.map((e) {
           final (icon, color, title, subtitle) = e.value;
           return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.only(bottom: 8),
             child: GlassContainer(
               borderRadius: 14,
               padding: const EdgeInsets.all(14),
@@ -383,7 +550,7 @@ class _RunningFeatures extends StatelessWidget {
                   ),
                 ],
               ),
-            ).animate().slideX(begin: 0.1).fadeIn(delay: (e.key * 80).ms),
+            ).animate().slideX(begin: 0.08).fadeIn(delay: (e.key * 70).ms),
           );
         }),
       ],
@@ -399,39 +566,56 @@ class _HowItWorks extends StatelessWidget {
       (
         Icons.play_circle_outline_rounded,
         AppColors.accent,
-        'Tap "Start Sharing"',
+        '1. Start Sharing',
         'Lumina starts a local HTTP server on your network',
       ),
       (
         Icons.qr_code_scanner_rounded,
         AppColors.primary,
-        'Scan the QR Code',
-        'Any device on your Wi-Fi can open your gallery instantly',
+        '2. Scan the QR Code',
+        'Any device on your Wi-Fi can open your gallery',
       ),
       (
         Icons.download_rounded,
         AppColors.success,
-        'Browse & Save',
-        'View photos, stream videos, and download files directly',
+        '3. Browse & Save',
+        'View photos, stream videos, and download files',
       ),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'How it works',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
+        Row(
+          children: [
+            Container(
+              width: 6,
+              height: 22,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.accent, AppColors.primary],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'How it works',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         ...steps.asMap().entries.map((e) {
           final (icon, color, title, subtitle) = e.value;
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 10),
             child: GlassContainer(
               borderRadius: 16,
               padding: const EdgeInsets.all(16),
@@ -473,9 +657,37 @@ class _HowItWorks extends StatelessWidget {
                   ),
                 ],
               ),
-            ).animate().slideX(begin: 0.1).fadeIn(delay: (e.key * 80).ms),
+            ).animate().slideX(begin: 0.08).fadeIn(delay: (e.key * 80).ms),
           );
         }),
+
+        // Privacy note at bottom
+        const SizedBox(height: 16),
+        Center(
+          child: GlassContainer(
+            borderRadius: 14,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.shield_rounded,
+                  color: AppColors.textMuted,
+                  size: 16,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Pure Privacy — Digital Sovereignty',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ).animate().fadeIn(delay: 300.ms),
+        ),
       ],
     );
   }
