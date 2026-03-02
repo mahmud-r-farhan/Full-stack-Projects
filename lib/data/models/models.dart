@@ -6,11 +6,13 @@ class MediaAsset {
     required this.entity,
     this.exifData,
     this.isVaulted = false,
+    this.vaultFilePath,
   });
 
   final AssetEntity entity;
   final Map<String, dynamic>? exifData;
   final bool isVaulted;
+  final String? vaultFilePath;
 
   String get id => entity.id;
   AssetType get type => entity.type;
@@ -25,11 +27,13 @@ class MediaAsset {
     AssetEntity? entity,
     Map<String, dynamic>? exifData,
     bool? isVaulted,
+    String? vaultFilePath,
   }) {
     return MediaAsset(
       entity: entity ?? this.entity,
       exifData: exifData ?? this.exifData,
       isVaulted: isVaulted ?? this.isVaulted,
+      vaultFilePath: vaultFilePath ?? this.vaultFilePath,
     );
   }
 
@@ -57,6 +61,46 @@ class MediaGroup {
   }
 }
 
+// ─── Shareable Directory Model ────────────────────────────
+enum StorageType { systemPhotos, downloads, documents, externalStorage, otg }
+
+class ShareableDirectory {
+  const ShareableDirectory({
+    required this.name,
+    required this.path,
+    required this.type,
+    required this.displayPath,
+    this.availableSpace,
+    this.totalSpace,
+  });
+
+  final String name;
+  final String path;
+  final StorageType type;
+  final String displayPath;
+  final int? availableSpace;
+  final int? totalSpace;
+
+  String get icon {
+    switch (type) {
+      case StorageType.systemPhotos:
+        return '📱';
+      case StorageType.downloads:
+        return '⬇️';
+      case StorageType.documents:
+        return '📄';
+      case StorageType.externalStorage:
+        return '💾';
+      case StorageType.otg:
+        return '🔌';
+    }
+  }
+
+  bool get hasSpaceInfo => availableSpace != null && totalSpace != null;
+  double get spaceUsagePercent =>
+      hasSpaceInfo ? (availableSpace! / totalSpace!) * 100 : 0;
+}
+
 // ─── LAN Server State ──────────────────────────────────────
 enum ServerStatus { stopped, starting, running, error }
 
@@ -66,16 +110,37 @@ class LanServerInfo {
     this.ipAddress,
     this.port,
     this.errorMessage,
+    this.selectedSharePath,
+    this.selectedShareName = 'All Photos',
   });
 
   final ServerStatus status;
   final String? ipAddress;
   final int? port;
   final String? errorMessage;
+  final String? selectedSharePath;
+  final String selectedShareName;
 
   bool get isRunning => status == ServerStatus.running;
-
   String get url => isRunning ? 'http://$ipAddress:$port' : '';
+
+  LanServerInfo copyWith({
+    ServerStatus? status,
+    String? ipAddress,
+    int? port,
+    String? errorMessage,
+    String? selectedSharePath,
+    String? selectedShareName,
+  }) {
+    return LanServerInfo(
+      status: status ?? this.status,
+      ipAddress: ipAddress ?? this.ipAddress,
+      port: port ?? this.port,
+      errorMessage: errorMessage ?? this.errorMessage,
+      selectedSharePath: selectedSharePath ?? this.selectedSharePath,
+      selectedShareName: selectedShareName ?? this.selectedShareName,
+    );
+  }
 
   static const LanServerInfo idle = LanServerInfo(status: ServerStatus.stopped);
 }
@@ -148,4 +213,33 @@ class AppSettings {
       vaultEnabled: vaultEnabled ?? this.vaultEnabled,
     );
   }
+}
+
+// ─── Vault Statistics ───────────────────────────────────────
+class VaultStats {
+  const VaultStats({
+    required this.itemCount,
+    required this.totalSize,
+    required this.vaultPath,
+  });
+
+  final int itemCount;
+  final int totalSize;
+  final String vaultPath;
+
+  String get sizeFormatted {
+    if (totalSize < 1024) return '$totalSize B';
+    if (totalSize < 1024 * 1024) return '${(totalSize / 1024).toStringAsFixed(1)} KB';
+    return '${(totalSize / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}
+
+// ─── Vault Exception ────────────────────────────────────────
+class VaultException implements Exception {
+  VaultException(this.message);
+  
+  final String message;
+
+  @override
+  String toString() => 'VaultException: $message';
 }

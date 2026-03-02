@@ -225,6 +225,34 @@ class _UnlockedView extends ConsumerWidget {
                     ),
                   ),
                 ),
+              // Add button
+              GlassContainer(
+                borderRadius: 12,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                onTap: () => _showAddAssetDialog(context, ref),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.add_rounded,
+                      color: AppColors.success,
+                      size: 16,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'Add',
+                      style: TextStyle(
+                        color: AppColors.success,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
               // Lock button
               GlassContainer(
                 borderRadius: 12,
@@ -258,12 +286,7 @@ class _UnlockedView extends ConsumerWidget {
         // Grid
         Expanded(
           child: state.assets.isEmpty
-              ? EmptyState(
-                  icon: Icons.add_photo_alternate_outlined,
-                  title: 'Vault is Empty',
-                  subtitle:
-                      'Long-press any photo in your gallery and select "Move to Vault" to hide it here.',
-                )
+              ? _EmptyVaultState(onAdd: () => _showAddAssetDialog(context, ref))
               : GridView.builder(
                   padding: const EdgeInsets.fromLTRB(4, 4, 4, 120),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -284,6 +307,314 @@ class _UnlockedView extends ConsumerWidget {
                 ),
         ),
       ],
+    );
+  }
+
+  void _showAddAssetDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _AddAssetDialog(
+        onAssetSelected: (asset) {
+          ref.read(vaultProvider.notifier).addAsset(asset);
+          Navigator.pop(ctx);
+        },
+      ),
+    );
+  }
+}
+
+// ─── Empty Vault State ────────────────────────────────────
+class _EmptyVaultState extends StatelessWidget {
+  const _EmptyVaultState({required this.onAdd});
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: AppColors.vaultGradient,
+              ),
+            ),
+            child: const Icon(
+              Icons.add_photo_alternate_outlined,
+              color: Colors.white,
+              size: 40,
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Vault is Empty',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Add photos and videos to keep them private and hidden.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 24),
+          GlassButton(
+            label: 'Add Media',
+            icon: Icons.add_rounded,
+            gradient: const LinearGradient(colors: AppColors.vaultGradient),
+            onPressed: onAdd,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Add Asset Dialog ──────────────────────────────────────
+class _AddAssetDialog extends ConsumerWidget {
+  const _AddAssetDialog({required this.onAssetSelected});
+  final Function(MediaAsset) onAssetSelected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectableAssets = ref.watch(selectableAssetsProvider);
+    final selected = <MediaAsset>[];
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: GlassContainer(
+        borderRadius: 24,
+        padding: const EdgeInsets.all(20),
+        child: Material(
+          color: Colors.transparent,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
+                children: [
+                  const Text(
+                    'Add to Vault',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Content
+              selectableAssets.when(
+                data: (assets) {
+                  if (assets.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.image_not_supported_outlined,
+                            size: 40,
+                            color: AppColors.textMuted,
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            'No media available',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return SizedBox(
+                    height: 300,
+                    child: StatefulBuilder(
+                      builder: (ctx, setState) => Column(
+                        children: [
+                          Expanded(
+                            child: GridView.builder(
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 4,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
+                              ),
+                              itemCount: assets.length,
+                              itemBuilder: (ctx, i) {
+                                final asset = assets[i];
+                                final isSelected =
+                                    selected.any((a) => a.id == asset.id);
+                                return _AssetSelectTile(
+                                  asset: asset,
+                                  isSelected: isSelected,
+                                  onTap: () {
+                                    setState(() {
+                                      if (isSelected) {
+                                        selected.removeWhere(
+                                            (a) => a.id == asset.id);
+                                      } else {
+                                        selected.add(asset);
+                                      }
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                      color: AppColors.textSecondary),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              GlassButton(
+                                label: 'Add (${selected.length})',
+                                gradient: const LinearGradient(
+                                    colors: AppColors.vaultGradient),
+                                isLoading: false,
+                                onPressed: selected.isEmpty
+                                    ? null
+                                    : () {
+                                        for (final asset in selected) {
+                                          onAssetSelected(asset);
+                                        }
+                                        Navigator.pop(context);
+                                      },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: CircularProgressIndicator(
+                      color: AppColors.accentWarm),
+                ),
+                error: (err, stack) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        size: 40,
+                        color: AppColors.warning,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Error loading media',
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Asset Select Tile ────────────────────────────────────
+class _AssetSelectTile extends StatefulWidget {
+  const _AssetSelectTile({
+    required this.asset,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final MediaAsset asset;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  State<_AssetSelectTile> createState() => _AssetSelectTileState();
+}
+
+class _AssetSelectTileState extends State<_AssetSelectTile> {
+  Uint8List? _thumb;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final bytes = await widget.asset.entity.thumbnailDataWithSize(
+      const ThumbnailSize.square(150),
+      quality: 75,
+    );
+    if (mounted) setState(() => _thumb = bytes);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (_thumb != null)
+            Image.memory(_thumb!, fit: BoxFit.cover)
+          else
+            Container(color: const Color(0xFF1A1A2E)),
+          // Selection overlay
+          if (widget.isSelected)
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.3),
+                border: Border.all(
+                  color: AppColors.success,
+                  width: 2,
+                ),
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.success,
+                  size: 28,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

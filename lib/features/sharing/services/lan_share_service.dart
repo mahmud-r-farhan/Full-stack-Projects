@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:network_info_plus/network_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
@@ -11,9 +12,9 @@ import '../../../core/constants/app_constants.dart';
 import '../../../data/models/models.dart';
 
 // ═══════════════════════════════════════════════════════════
-//  LAN Share Service — Enhanced HTTP server (shelf)
-//  Features: Album browsing, pagination, video streaming,
-//  proper MIME detection, professional Web UI.
+//  LAN Share Service — Enhanced disk/folder selection
+//  Features: Album browsing, disk selection, OTG support,  
+//  pagination, video streaming, professional Web UI.
 // ═══════════════════════════════════════════════════════════
 
 class LanShareService {
@@ -58,18 +59,103 @@ class LanShareService {
     return type == AssetType.video ? 'video/mp4' : 'image/jpeg';
   }
 
+  // ─── Get available shareable directories ──────────────────
+
+  Future<List<ShareableDirectory>> getAvailableDirectories() async {
+    final directories = <ShareableDirectory>[];
+
+    try {
+      // System Photos (through PhotoManager API)
+      directories.add(
+        ShareableDirectory(
+          name: 'All Photos',
+          path: 'PHOTOS_SYSTEM',
+          type: StorageType.systemPhotos,
+          displayPath: 'Device Photos',
+        ),
+      );
+
+      // Downloads folder
+      final downloadsDir = await getDownloadsDirectory();
+      if (downloadsDir != null) {
+        directories.add(
+          ShareableDirectory(
+            name: 'Downloads',
+            path: downloadsDir.path,
+            type: StorageType.downloads,
+            displayPath: downloadsDir.path.replaceFirst(
+              RegExp(r'^.*?(/[^/]*?)$'),
+              r'$1',
+            ),
+          ),
+        );
+      }
+
+      // Documents folder
+      final documentsDir = await getApplicationDocumentsDirectory();
+      directories.add(
+        ShareableDirectory(
+          name: 'Documents',
+          path: documentsDir.path,
+          type: StorageType.documents,
+          displayPath: documentsDir.path.replaceFirst(
+            RegExp(r'^.*?(/[^/]*?)$'),
+            r'$1',
+          ),
+        ),
+      );
+
+      // External storage (if available on Android)
+      try {
+        final externalDir = await getExternalStorageDirectory();
+        if (externalDir != null) {
+          directories.add(
+            ShareableDirectory(
+              name: 'External Storage',
+              path: externalDir.path,
+              type: StorageType.externalStorage,
+              displayPath: 'External Storage',
+            ),
+          );
+        }
+      } catch (_) {}
+
+      // OTG support would require additional platform-specific handling
+      // Placeholder for future OTG implementation
+      // directories.add(ShareableDirectory(...otg_detection...));
+    } catch (e) {
+      // Return at least the system photos option
+      if (directories.isEmpty) {
+        directories.add(
+          ShareableDirectory(
+            name: 'All Photos',
+            path: 'PHOTOS_SYSTEM',
+            type: StorageType.systemPhotos,
+            displayPath: 'Device Photos',
+          ),
+        );
+      }
+    }
+
+    return directories;
+  }
+
   // ─── Start server ───────────────────────────────────────
 
-  Future<LanServerInfo> startServer() async {
+  Future<LanServerInfo> startServer({String? sharePath}) async {
     if (_server != null) return _serverInfo;
 
     try {
-      _emit(const LanServerInfo(status: ServerStatus.starting));
+      _emit(_serverInfo.copyWith(status: ServerStatus.starting));
 
       final ip = await _getLocalIp();
       if (ip == null) {
         return _emitError('Could not determine local IP address.');
       }
+
+      final shareName = sharePath == null || sharePath == 'PHOTOS_SYSTEM'
+          ? 'All Photos'
+          : sharePath.split('/').last;
 
       final router = Router()
         ..get('/', _handleRoot)
@@ -89,10 +175,12 @@ class LanShareService {
         AppConstants.lanServerPort,
       );
 
-      final info = LanServerInfo(
+      final info = _serverInfo.copyWith(
         status: ServerStatus.running,
         ipAddress: ip,
         port: AppConstants.lanServerPort,
+        selectedSharePath: sharePath,
+        selectedShareName: shareName,
       );
       _emit(info);
       return info;
@@ -1284,7 +1372,7 @@ if (hasMore) {
   container.className = 'load-more-container';
   container.style.textAlign = 'center';
   container.style.marginTop = '24px';
-  container.innerHTML = '<button class="lb-btn" onclick="loadMoreAssets()" style="cursor:pointer;">Load More</button>';
+  container.innerHTML = '<button class="lb-btn" onclick="loadMoreAssets()" style="cursor:pointer;">Refresh</button>';
   grid.parentElement.appendChild(container);
 }
   }

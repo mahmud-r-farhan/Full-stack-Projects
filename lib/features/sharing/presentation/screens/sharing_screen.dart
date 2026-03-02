@@ -89,6 +89,10 @@ class SharingScreen extends ConsumerWidget {
 
               // ── Features / How it works
               if (serverInfo.isRunning) _RunningFeatures() else _HowItWorks(),
+              const SizedBox(height: 20),
+
+              // ── Directory Selection (if not running)
+              if (!serverInfo.isRunning) _DirectorySelector(),
             ],
           ),
         ),
@@ -689,6 +693,173 @@ class _HowItWorks extends StatelessWidget {
           ).animate().fadeIn(delay: 300.ms),
         ),
       ],
+    );
+  }
+}
+// ─── Directory Selector ────────────────────────────────────
+class _DirectorySelector extends ConsumerWidget {
+  const _DirectorySelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final directories = ref.watch(availableDirectoriesProvider);
+
+    return directories.when(
+      data: (dirs) => GlassContainer(
+        borderRadius: 20,
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.folder_open_rounded,
+                  color: AppColors.accent,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Share From',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            ...dirs.map((dir) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: GestureDetector(
+                  onTap: () {
+                    ref.read(lanShareProvider.notifier).startServer(
+                      sharePath: dir.path,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Sharing from: ${dir.name}'),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  child: GlassContainer(
+                    borderRadius: 14,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          dir.icon,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                dir.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                dir.displayPath,
+                                style: const TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 11,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: AppColors.accent,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ).animate().slideX(begin: -0.05).fadeIn(),
+              );
+            }),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.accentWarm.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.accentWarm.withValues(alpha: 0.2),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: AppColors.accentWarm,
+                    size: 14,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Select a location to share. OTG support can be added in settings.',
+                      style: TextStyle(
+                        color: AppColors.accentWarm,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      loading: () => const Center(
+        child: SizedBox(
+          height: 100,
+          child: CircularProgressIndicator(
+            color: AppColors.accent,
+          ),
+        ),
+      ),
+      error: (err, stack) => GlassContainer(
+        borderRadius: 20,
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: AppColors.warning,
+              size: 32,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Error loading directories: $err',
+              style: const TextStyle(
+                color: AppColors.warning,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
