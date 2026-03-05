@@ -1117,11 +1117,12 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
 
   Future<void> _addToVault(BuildContext context, MediaAsset asset) async {
     setState(() => _isAddingToVault = true);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(vaultProvider.notifier).addAsset(asset);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Row(
               children: [
@@ -1129,7 +1130,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '${asset.entity.title} added to Vault',
+                    'Added to Vault',
                     style: const TextStyle(
                       fontWeight: FontWeight.w500,
                       fontSize: 14,
@@ -1148,7 +1149,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               'Failed to add to Vault: $e',

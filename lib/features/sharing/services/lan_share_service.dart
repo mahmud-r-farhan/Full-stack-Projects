@@ -440,9 +440,9 @@ class LanShareService {
             (f as File).statSync().modified.millisecondsSinceEpoch,
           ).toIso8601String(),
           'duration': null,
-          'thumbUrl': '/api/thumb/${fileId}?path=${Uri.encodeComponent(path)}',
-          'fileUrl': '/api/file/${fileId}?path=${Uri.encodeComponent(path)}',
-          'streamUrl': isVideo ? '/api/stream/${fileId}?path=${Uri.encodeComponent(path)}' : null,
+          'thumbUrl': '/api/thumb/$fileId?path=${Uri.encodeComponent(path)}',
+          'fileUrl': '/api/file/$fileId?path=${Uri.encodeComponent(path)}',
+          'streamUrl': isVideo ? '/api/stream/$fileId?path=${Uri.encodeComponent(path)}' : null,
         };
       }).toList();
 
