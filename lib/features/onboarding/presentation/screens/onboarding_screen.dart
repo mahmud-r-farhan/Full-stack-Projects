@@ -31,21 +31,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       gradient: AppColors.heroGradient,
       title: 'Welcome to Lumina',
       subtitle:
-          'Your photos & videos, beautifully organized — entirely on your device. No cloud. No subscriptions. Pure digital sovereignty.',
+          'Your photos & videos, beautifully organized, entirely on your device. No cloud. No subscriptions. Pure digital sovereignty.',
     ),
     _OnboardPage(
       icon: Icons.wifi_tethering_rounded,
       gradient: AppColors.shareGradient,
       title: 'Share Instantly',
       subtitle:
-          'Cast your gallery to any device on the same Wi-Fi. Your PC, tablet, or Smart TV gets a live browsable gallery — no app needed.',
+          'Cast your gallery to any device on the same Wi-Fi. Your PC, tablet, or Smart TV gets a live browsable gallery, no app needed.',
     ),
     _OnboardPage(
       icon: Icons.lock_rounded,
       gradient: AppColors.vaultGradient,
       title: 'The Vault',
       subtitle:
-          'A biometric-protected sanctuary. Move your most private moments here — they become invisible to other apps and prying eyes.',
+          'A biometric-protected sanctuary. Move your most private moments here, they become invisible to other apps and prying eyes.',
     ),
     _OnboardPage(
       icon: Icons.folder_open_rounded,

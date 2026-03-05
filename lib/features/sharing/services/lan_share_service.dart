@@ -212,7 +212,14 @@ class LanShareService {
 
   Future<Response> _handleAlbums(Request req) async {
     try {
-      // Check permissions first
+      final sharePath = _serverInfo.selectedSharePath;
+
+      // If sharing a folder from filesystem (Downloads, Documents, etc.)
+      if (sharePath != null && sharePath != 'PHOTOS_SYSTEM') {
+        return _handleFolderAlbums(sharePath);
+      }
+
+      // Otherwise, use PhotoManager for system photos
       final permission = await PhotoManager.requestPermissionExtend();
       if (!permission.isAuth) {
         return Response.forbidden(
@@ -256,9 +263,60 @@ class LanShareService {
     }
   }
 
+  Future<Response> _handleFolderAlbums(String sharePath) async {
+    try {
+      final dir = Directory(sharePath);
+      if (!await dir.exists()) {
+        return _jsonResponse([
+          {
+            'id': 'default',
+            'name': sharePath.split('/').last,
+            'count': 0,
+          }
+        ]);
+      }
+
+      // Return a single album for the selected folder
+      int count = 0;
+      try {
+        final files = dir.listSync(recursive: true);
+        count = files.where((f) {
+          final path = f.path.toLowerCase();
+          final ext = path.split('.').last;
+          return _mimeTypes.containsKey(ext) &&
+              (f is File);
+        }).length;
+      } catch (_) {}
+
+      return _jsonResponse([
+        {
+          'id': 'default',
+          'name': sharePath.split('/').last,
+          'count': count,
+        }
+      ]);
+    } catch (e) {
+      return Response.internalServerError(
+        body: jsonEncode({
+          'error': 'Failed to load folder',
+          'details': e.toString(),
+          'code': 'FOLDER_LOAD_ERROR',
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
+
   Future<Response> _handleAssets(Request req, String albumId) async {
     try {
-      // Support pagination
+      final sharePath = _serverInfo.selectedSharePath;
+
+      // If sharing a folder from filesystem
+      if (sharePath != null && sharePath != 'PHOTOS_SYSTEM') {
+        return _handleFolderAssets(sharePath, req);
+      }
+
+      // Otherwise, use PhotoManager for system photos
       final page = int.tryParse(req.url.queryParameters['page'] ?? '0') ?? 0;
       final size = int.tryParse(req.url.queryParameters['size'] ?? '60') ?? 60;
 
@@ -317,8 +375,122 @@ class LanShareService {
     }
   }
 
+  Future<Response> _handleFolderAssets(String sharePath, Request req) async {
+    try {
+      final page = int.tryParse(req.url.queryParameters['page'] ?? '0') ?? 0;
+      final size = int.tryParse(req.url.queryParameters['size'] ?? '60') ?? 60;
+
+      final dir = Directory(sharePath);
+      if (!await dir.exists()) {
+        return _jsonResponse({
+          'total': 0,
+          'page': page,
+          'pageSize': size,
+          'hasMore': false,
+          'assets': [],
+        });
+      }
+
+      // Get all supported media files recursively
+      final files = <FileSystemEntity>[];
+      try {
+        final list = dir.listSync(recursive: true);
+        for (var item in list) {
+          if (item is File) {
+            final path = item.path.toLowerCase();
+            final ext = path.split('.').last;
+            if (_mimeTypes.containsKey(ext)) {
+              files.add(item);
+            }
+          }
+        }
+      } catch (_) {}
+
+      // Sort by modified time (newest first)
+      files.sort((a, b) {
+        try {
+          final statA = (a as File).statSync();
+          final statB = (b as File).statSync();
+          return statB.modified.compareTo(statA.modified);
+        } catch (_) {
+          return 0;
+        }
+      });
+
+      final total = files.length;
+      final startIdx = page * size;
+      final endIdx = (startIdx + size).clamp(0, total);
+      final pageFiles = startIdx < total ? files.sublist(startIdx, endIdx) : [];
+
+      final assets = pageFiles.map((f) {
+        final path = f.path;
+        final ext = path.split('.').last.toLowerCase();
+        final isVideo = ['mp4', 'mov', 'mkv', 'avi', 'webm', '3gp', 'flv', 'wmv', 'm4v', 'ts'].contains(ext);
+
+        // Create a simple ID from the file path
+        final fileId = path.hashCode.toString().replaceAll('-', '');
+
+        return {
+          'id': fileId,
+          'type': isVideo ? 'video' : 'image',
+          'path': path, // Store the actual file path for later retrieval
+          'width': 0,
+          'height': 0,
+          'createDate': DateTime.fromMillisecondsSinceEpoch(
+            (f as File).statSync().modified.millisecondsSinceEpoch,
+          ).toIso8601String(),
+          'duration': null,
+          'thumbUrl': '/api/thumb/${fileId}?path=${Uri.encodeComponent(path)}',
+          'fileUrl': '/api/file/${fileId}?path=${Uri.encodeComponent(path)}',
+          'streamUrl': isVideo ? '/api/stream/${fileId}?path=${Uri.encodeComponent(path)}' : null,
+        };
+      }).toList();
+
+      return _jsonResponse({
+        'total': total,
+        'page': page,
+        'pageSize': size,
+        'hasMore': endIdx < total,
+        'assets': assets,
+      });
+    } catch (e) {
+      return Response.internalServerError(
+        body: jsonEncode({
+          'error': 'Failed to load folder assets',
+          'details': e.toString(),
+          'code': 'FOLDER_ASSETS_ERROR',
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
+
   Future<Response> _handleThumbnail(Request req, String assetId) async {
     try {
+      final filePath = req.url.queryParameters['path'];
+
+      // Handle filesystem file
+      if (filePath != null && filePath.isNotEmpty) {
+        final file = File(filePath);
+        if (!await file.exists()) return Response.notFound('File not found');
+
+        try {
+          final bytes = await file.readAsBytes();
+
+          // Try to generate thumbnail from image
+          return Response.ok(
+            bytes,
+            headers: {
+              'Content-Type': _getMimeType(filePath, AssetType.image),
+              'Cache-Control': 'public, max-age=3600',
+            },
+          );
+        } catch (e) {
+          return Response.internalServerError(body: 'Failed to load thumbnail: $e');
+        }
+      }
+
+      // Handle PhotoManager asset
       final entity = await AssetEntity.fromId(assetId);
       if (entity == null) return Response.notFound('Asset not found');
       final bytes = await entity.thumbnailDataWithSize(
@@ -341,6 +513,27 @@ class LanShareService {
 
   Future<Response> _handleFile(Request req, String assetId) async {
     try {
+      final filePath = req.url.queryParameters['path'];
+
+      // Handle filesystem file
+      if (filePath != null && filePath.isNotEmpty) {
+        final file = File(filePath);
+        if (!await file.exists()) return Response.notFound('File not found');
+
+        final bytes = await file.readAsBytes();
+        final mimeType = _getMimeType(filePath, AssetType.image);
+        final filename = filePath.split('/').last;
+        return Response.ok(
+          bytes,
+          headers: {
+            'Content-Type': mimeType,
+            'Content-Disposition': 'attachment; filename="$filename"',
+            'Content-Length': bytes.length.toString(),
+          },
+        );
+      }
+
+      // Handle PhotoManager asset
       final entity = await AssetEntity.fromId(assetId);
       if (entity == null) return Response.notFound('Asset not found');
       final file = await entity.originFile;
@@ -364,6 +557,26 @@ class LanShareService {
   // Video streaming endpoint for browser playback
   Future<Response> _handleStream(Request req, String assetId) async {
     try {
+      final filePath = req.url.queryParameters['path'];
+
+      // Handle filesystem file
+      if (filePath != null && filePath.isNotEmpty) {
+        final file = File(filePath);
+        if (!await file.exists()) return Response.notFound('File not found');
+
+        final bytes = await file.readAsBytes();
+        final mimeType = _getMimeType(filePath, AssetType.video);
+        return Response.ok(
+          bytes,
+          headers: {
+            'Content-Type': mimeType,
+            'Accept-Ranges': 'bytes',
+            'Content-Length': bytes.length.toString(),
+          },
+        );
+      }
+
+      // Handle PhotoManager asset
       final entity = await AssetEntity.fromId(assetId);
       if (entity == null) return Response.notFound('Asset not found');
       final file = await entity.originFile;

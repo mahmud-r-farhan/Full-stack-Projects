@@ -314,9 +314,11 @@ class _UnlockedView extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => _AddAssetDialog(
-        onAssetSelected: (asset) {
-          ref.read(vaultProvider.notifier).addAsset(asset);
-          Navigator.pop(ctx);
+        onAssetsSelected: (assets) async {
+          for (final asset in assets) {
+            await ref.read(vaultProvider.notifier).addAsset(asset);
+          }
+          if (ctx.mounted) Navigator.pop(ctx);
         },
       ),
     );
@@ -382,8 +384,8 @@ class _EmptyVaultState extends StatelessWidget {
 
 // ─── Add Asset Dialog ──────────────────────────────────────
 class _AddAssetDialog extends ConsumerWidget {
-  const _AddAssetDialog({required this.onAssetSelected});
-  final Function(MediaAsset) onAssetSelected;
+  const _AddAssetDialog({required this.onAssetsSelected});
+  final Function(List<MediaAsset>) onAssetsSelected;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -502,11 +504,8 @@ class _AddAssetDialog extends ConsumerWidget {
                                 isLoading: false,
                                 onPressed: selected.isEmpty
                                     ? null
-                                    : () {
-                                        for (final asset in selected) {
-                                          onAssetSelected(asset);
-                                        }
-                                        Navigator.pop(context);
+                                    : () async {
+                                        await onAssetsSelected(selected);
                                       },
                               ),
                             ],

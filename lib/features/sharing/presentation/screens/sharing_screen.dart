@@ -249,7 +249,7 @@ class _ActiveServerView extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: AppColors.accent,
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'monospace',
                   ),
@@ -705,131 +705,98 @@ class _DirectorySelector extends ConsumerWidget {
     final directories = ref.watch(availableDirectoriesProvider);
 
     return directories.when(
-      data: (dirs) => GlassContainer(
-        borderRadius: 20,
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.folder_open_rounded,
-                  color: AppColors.accent,
-                  size: 20,
+      data: (dirs) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with icon
+          Row(
+            children: [
+              Container(
+                width: 6,
+                height: 22,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: AppColors.shareGradient,
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(3),
                 ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Share From',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Select Folder to Share',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Padding(
+            padding: EdgeInsets.only(left: 16),
+            child: Text(
+              'Choose where to share photos and videos from',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Directory cards
+          ...dirs.asMap().entries.map((e) {
+            final index = e.key;
+            final dir = e.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _DirectoryCard(
+                directory: dir,
+                isFirst: index == 0,
+                isLast: index == dirs.length - 1,
+              ),
+            );
+          }),
+
+          const SizedBox(height: 12),
+          // Info banner
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.accentWarm.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: AppColors.accentWarm.withValues(alpha: 0.2),
+              ),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: AppColors.accentWarm,
+                  size: 16,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Files will be served only from the selected folder and its subfolders.',
+                    style: TextStyle(
+                      color: AppColors.accentWarm,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            ...dirs.map((dir) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: GestureDetector(
-                  onTap: () {
-                    ref.read(lanShareProvider.notifier).startServer(
-                      sharePath: dir.path,
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            'Sharing from: ${dir.name}'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  child: GlassContainer(
-                    borderRadius: 14,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          dir.icon,
-                          style: const TextStyle(fontSize: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                dir.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                dir.displayPath,
-                                style: const TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 11,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.arrow_forward_rounded,
-                          color: AppColors.accent,
-                          size: 16,
-                        ),
-                      ],
-                    ),
-                  ),
-                ).animate().slideX(begin: -0.05).fadeIn(),
-              );
-            }),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.accentWarm.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.accentWarm.withValues(alpha: 0.2),
-                ),
-              ),
-              child: const Row(
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    color: AppColors.accentWarm,
-                    size: 14,
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Select a location to share. OTG support can be added in settings.',
-                      style: TextStyle(
-                        color: AppColors.accentWarm,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
       loading: () => const Center(
         child: SizedBox(
@@ -861,5 +828,186 @@ class _DirectorySelector extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+// ─── Directory Card ────────────────────────────────────
+class _DirectoryCard extends ConsumerWidget {
+  const _DirectoryCard({
+    required this.directory,
+    this.isFirst = false,
+    this.isLast = false,
+  });
+
+  final ShareableDirectory directory;
+  final bool isFirst;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(lanShareProvider.notifier).startServer(
+          sharePath: directory.path,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Started sharing from ${directory.name}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 3),
+            margin: const EdgeInsets.all(16),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(isFirst ? 16 : 0),
+            bottom: Radius.circular(isLast ? 16 : 0),
+          ),
+          border: Border(
+            top: isFirst
+                ? BorderSide(color: AppColors.glassBorder.withValues(alpha: 0.3))
+                : BorderSide(color: AppColors.glassBorder.withValues(alpha: 0.15)),
+            bottom: BorderSide(
+              color: isLast
+                  ? AppColors.glassBorder.withValues(alpha: 0.3)
+                  : AppColors.glassBorder.withValues(alpha: 0.15),
+            ),
+            left: BorderSide(color: AppColors.glassBorder.withValues(alpha: 0.3)),
+            right: BorderSide(color: AppColors.glassBorder.withValues(alpha: 0.3)),
+          ),
+          color: AppColors.glassDark.withValues(alpha: 0.4),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              ref.read(lanShareProvider.notifier).startServer(
+                sharePath: directory.path,
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded,
+                          color: Colors.white),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Started sharing from ${directory.name}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: AppColors.success,
+                  duration: const Duration(seconds: 3),
+                  margin: const EdgeInsets.all(16),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  // Icon
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.accent.withValues(alpha: 0.2),
+                          AppColors.primary.withValues(alpha: 0.1),
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        directory.icon,
+                        style: const TextStyle(fontSize: 24),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+
+                  // Text content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          directory.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                            fontSize: 15,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          directory.displayPath,
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Arrow indicator
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.accent.withValues(alpha: 0.1),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        color: AppColors.accent,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ).animate().slideX(begin: -0.05).fadeIn();
   }
 }

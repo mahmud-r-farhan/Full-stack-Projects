@@ -9,6 +9,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/models.dart';
 import '../../../../features/settings/providers/settings_provider.dart';
+import '../../../../features/vault/providers/vault_provider.dart';
 import '../../../../shared/widgets/glass_widgets.dart';
 import '../../providers/gallery_provider.dart';
 import '../widgets/media_tile.dart';
@@ -412,33 +413,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const SizedBox(width: 8),
-                      // Column count indicator
-                      GlassContainer(
-                        borderRadius: 10,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.grid_view_rounded,
-                              color: AppColors.textMuted,
-                              size: 14,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${settings.gridColumns}',
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                     
                       const SizedBox(width: 8),
                       // Album picker
                       GlassContainer(
@@ -945,7 +920,7 @@ class _GalleryShimmerState extends State<_GalleryShimmer>
 //  Media Viewer Screen — Full-screen image + video player
 // ═══════════════════════════════════════════════════════════
 
-class MediaViewerScreen extends StatefulWidget {
+class MediaViewerScreen extends ConsumerStatefulWidget {
   const MediaViewerScreen({
     super.key,
     required this.assets,
@@ -956,13 +931,14 @@ class MediaViewerScreen extends StatefulWidget {
   final int initialIndex;
 
   @override
-  State<MediaViewerScreen> createState() => _MediaViewerScreenState();
+  ConsumerState<MediaViewerScreen> createState() => _MediaViewerScreenState();
 }
 
-class _MediaViewerScreenState extends State<MediaViewerScreen> {
+class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   late PageController _pageCtrl;
   late int _currentIndex;
   bool _showUi = true;
+  bool _isAddingToVault = false;
 
   @override
   void initState() {
@@ -1068,6 +1044,12 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
                             onTap: () => _shareMedia(currentAsset),
                           ),
                           _ActionButton(
+                            icon: Icons.lock_outline_rounded,
+                            label: 'Vault',
+                            onTap: _isAddingToVault ? null : () => _addToVault(context, currentAsset),
+                            isLoading: _isAddingToVault,
+                          ),
+                          _ActionButton(
                             icon: Icons.delete_outline_rounded,
                             label: 'Delete',
                             onTap: () => _deleteMedia(context, currentAsset),
@@ -1130,6 +1112,55 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Preparing to share...')));
+    }
+  }
+
+  Future<void> _addToVault(BuildContext context, MediaAsset asset) async {
+    setState(() => _isAddingToVault = true);
+    try {
+      await ref.read(vaultProvider.notifier).addAsset(asset);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.lock_rounded, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '${asset.entity.title} added to Vault',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.accentWarm,
+            duration: const Duration(seconds: 3),
+            margin: const EdgeInsets.all(16),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to add to Vault: $e',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isAddingToVault = false);
     }
   }
 
@@ -1394,30 +1425,49 @@ class _ActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.isLoading = false,
   });
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: 16,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 22),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-            ),
+    return GestureDetector(
+      onTap: isLoading ? null : onTap,
+      child: GlassContainer(
+        borderRadius: 16,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        onTap: isLoading ? null : onTap,
+        child: AnimatedOpacity(
+          opacity: isLoading ? 0.6 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isLoading)
+                const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              else
+                Icon(icon, color: Colors.white, size: 22),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
