@@ -105,16 +105,32 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.darkCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.darkCard
+            : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            (Theme.of(
+                      context,
+                    ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                    true)
+                ? 32
+                : 16,
+          ),
+        ),
         title: const Text(
           'Permission Required',
           style: TextStyle(color: AppColors.textPrimary),
         ),
-        content: const Text(
+        content: Text(
           'Lumina Gallery needs media access to display your photos and videos. '
           'Please grant permission in your device settings.',
-          style: TextStyle(color: AppColors.textSecondary, height: 1.5),
+          style: TextStyle(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.8),
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
@@ -148,7 +164,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    SystemChrome.setSystemUIOverlayStyle(
+      isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+    );
     return AnimatedGradientBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -160,10 +179,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 alignment: Alignment.topRight,
                 child: TextButton(
                   onPressed: _finish,
-                  child: const Text(
+                  child: Text(
                     'Skip',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
                       fontSize: 14,
                     ),
                   ),
@@ -196,11 +217,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     width: _currentPage == i ? 28 : 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(
+                        Theme.of(context)
+                                    .extension<LiquidThemeExtension>()
+                                    ?.isLiquidDesign ??
+                                true
+                            ? 4
+                            : 2,
+                      ),
                       gradient: _currentPage == i
                           ? const LinearGradient(colors: AppColors.heroGradient)
                           : null,
-                      color: _currentPage == i ? null : AppColors.textMuted,
+                      color: _currentPage == i
+                          ? null
+                          : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.2),
                     ),
                   ),
                 ),
@@ -341,8 +373,10 @@ class _OnboardPageView extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
                 page.subtitle,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                   fontSize: 16,
                   height: 1.6,
                 ),
@@ -365,7 +399,14 @@ class _OnboardPageView extends StatelessWidget {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(
+                          (Theme.of(context)
+                                      .extension<LiquidThemeExtension>()
+                                      ?.isLiquidDesign ??
+                                  true)
+                              ? 24
+                              : 12,
+                        ),
                         color: AppColors.success.withValues(alpha: 0.15),
                         border: Border.all(
                           color: AppColors.success.withValues(alpha: 0.4),

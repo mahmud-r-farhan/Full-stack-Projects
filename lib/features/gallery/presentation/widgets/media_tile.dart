@@ -63,77 +63,95 @@ class _MediaTileState extends State<MediaTile>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final ext = Theme.of(context).extension<LiquidThemeExtension>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final radius = (ext?.isLiquidDesign ?? true) ? 16.0 : 4.0;
+
     return GestureDetector(
       onTap: widget.onTap,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // ── Thumbnail image
-          if (_loading)
-            Container(color: const Color(0xFF1A1A2E))
-          else if (_thumb != null)
-            Image.memory(_thumb!, fit: BoxFit.cover, gaplessPlayback: true)
-          else
-            Container(
-              color: const Color(0xFF12121F),
-              child: const Icon(
-                Icons.broken_image_outlined,
-                color: AppColors.textMuted,
-              ),
-            ),
-
-          // ── Video overlay badge
-          if (widget.asset.type == AssetType.video)
-            Positioned(
-              bottom: 6,
-              left: 6,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(6),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // ── Thumbnail image
+            if (_loading)
+              Container(
+                color: isDark
+                    ? const Color(0xFF1A1A2E)
+                    : Colors.black.withValues(alpha: 0.05),
+              )
+            else if (_thumb != null)
+              Image.memory(_thumb!, fit: BoxFit.cover, gaplessPlayback: true)
+            else
+              Container(
+                color: isDark
+                    ? const Color(0xFF12121F)
+                    : Colors.black.withValues(alpha: 0.08),
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  color: isDark
+                      ? AppColors.textMuted
+                      : AppColors.textMutedLight,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 12,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      _formatDuration(widget.asset.videoDuration),
-                      style: const TextStyle(
+              ),
+
+            // ── Video overlay badge
+            if (widget.asset.type == AssetType.video)
+              Positioned(
+                bottom: 6,
+                left: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.play_arrow_rounded,
                         color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
+                        size: 12,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 2),
+                      Text(
+                        _formatDuration(widget.asset.videoDuration),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-          // ── Vaulted indicator
-          if (widget.asset.isVaulted)
-            Positioned(
-              top: 6,
-              right: 6,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.black54,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.lock_rounded,
-                  color: AppColors.accentWarm,
-                  size: 12,
+            // ── Vaulted indicator
+            if (widget.asset.isVaulted)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.lock_rounded,
+                    color: AppColors.accentWarm,
+                    size: 12,
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

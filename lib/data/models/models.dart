@@ -97,8 +97,12 @@ class ShareableDirectory {
   }
 
   bool get hasSpaceInfo => availableSpace != null && totalSpace != null;
-  double get spaceUsagePercent =>
-      hasSpaceInfo ? (availableSpace! / totalSpace!) * 100 : 0;
+  double get spaceUsagePercent {
+    if (hasSpaceInfo) {
+      return (availableSpace! / totalSpace!) * 100;
+    }
+    return 0;
+  }
 }
 
 // ─── LAN Server State ──────────────────────────────────────
@@ -183,6 +187,7 @@ class AppSettings {
   const AppSettings({
     this.isDarkMode = true,
     this.isPerformanceMode = false,
+    this.isLiquidDesign = true,
     this.gridColumns = 3,
     this.crashReportingOptIn = false,
     this.onboardingComplete = false,
@@ -191,6 +196,7 @@ class AppSettings {
 
   final bool isDarkMode;
   final bool isPerformanceMode;
+  final bool isLiquidDesign;
   final int gridColumns;
   final bool crashReportingOptIn;
   final bool onboardingComplete;
@@ -199,6 +205,7 @@ class AppSettings {
   AppSettings copyWith({
     bool? isDarkMode,
     bool? isPerformanceMode,
+    bool? isLiquidDesign,
     int? gridColumns,
     bool? crashReportingOptIn,
     bool? onboardingComplete,
@@ -207,6 +214,7 @@ class AppSettings {
     return AppSettings(
       isDarkMode: isDarkMode ?? this.isDarkMode,
       isPerformanceMode: isPerformanceMode ?? this.isPerformanceMode,
+      isLiquidDesign: isLiquidDesign ?? this.isLiquidDesign,
       gridColumns: gridColumns ?? this.gridColumns,
       crashReportingOptIn: crashReportingOptIn ?? this.crashReportingOptIn,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
@@ -228,8 +236,12 @@ class VaultStats {
   final String vaultPath;
 
   String get sizeFormatted {
-    if (totalSize < 1024) return '$totalSize B';
-    if (totalSize < 1024 * 1024) return '${(totalSize / 1024).toStringAsFixed(1)} KB';
+    if (totalSize < 1024) {
+      return '$totalSize B';
+    }
+    if (totalSize < 1024 * 1024) {
+      return '${(totalSize / 1024).toStringAsFixed(1)} KB';
+    }
     return '${(totalSize / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }
@@ -237,7 +249,7 @@ class VaultStats {
 // ─── Vault Exception ────────────────────────────────────────
 class VaultException implements Exception {
   VaultException(this.message);
-  
+
   final String message;
 
   @override

@@ -21,6 +21,7 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
       isDarkMode: prefs.getBool(AppConstants.prefsDarkMode) ?? true,
       isPerformanceMode:
           prefs.getBool(AppConstants.prefsPerformanceMode) ?? false,
+      isLiquidDesign: prefs.getBool(AppConstants.prefsLiquidDesign) ?? true,
       onboardingComplete:
           prefs.getBool(AppConstants.prefsOnboardingDone) ?? false,
       vaultEnabled: prefs.getBool(AppConstants.prefsVaultSetup) ?? false,
@@ -34,6 +35,12 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
     final prefs = ref.read(sharedPrefsProvider);
     await prefs.setBool(AppConstants.prefsDarkMode, value);
     state = state.copyWith(isDarkMode: value);
+  }
+
+  Future<void> setLiquidDesign(bool value) async {
+    final prefs = ref.read(sharedPrefsProvider);
+    await prefs.setBool(AppConstants.prefsLiquidDesign, value);
+    state = state.copyWith(isLiquidDesign: value);
   }
 
   Future<void> setPerformanceMode(bool value) async {

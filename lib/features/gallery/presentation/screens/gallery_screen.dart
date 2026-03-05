@@ -38,7 +38,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   void initState() {
     super.initState();
     _scrollCtrl.addListener(_onScroll);
-    // Check if device is mobile/tablet
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateSidebarVisibility();
     });
@@ -47,7 +46,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   void _updateSidebarVisibility() {
     final width = MediaQuery.of(context).size.width;
     if (width < 768) {
-      // Mobile: hide sidebar by default
       if (mounted && _sidebarOpen) {
         setState(() => _sidebarOpen = false);
       }
@@ -55,12 +53,10 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   }
 
   void _onScroll() {
-    // Infinite pagination — load next batch when near bottom
     if (_scrollCtrl.position.pixels >=
         _scrollCtrl.position.maxScrollExtent - 400) {
       ref.read(galleryProvider.notifier).loadNextPage();
     }
-    // FAB visibility
     final show = _scrollCtrl.offset > 300;
     if (show != _showFab) setState(() => _showFab = show);
   }
@@ -72,7 +68,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
   }
 
   void _onScaleUpdate(ScaleUpdateDetails details) {
-    // Inverted: pinch-in (zoom out) = more columns, pinch-out (zoom in) = fewer columns
     final newColumns = (_baseScale / details.scale).round().clamp(
       AppConstants.gridCrossAxisCountMin,
       AppConstants.gridCrossAxisCountMax,
@@ -105,9 +100,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
           children: [
             Row(
               children: [
-                // Sidebar with albums (responsive) — desktop only
                 if (!isMobile) _buildSidebar(context, ref, settings),
-                // Main content
                 Expanded(
                   child: Stack(
                     children: [
@@ -156,7 +149,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                                         .refresh(),
                                     child: GridView.builder(
                                       controller: _scrollCtrl,
-                                      padding: EdgeInsets.fromLTRB(
+                                      padding: const EdgeInsets.fromLTRB(
                                         12,
                                         12,
                                         12,
@@ -193,7 +186,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                           ),
                         ],
                       ),
-                      // Scroll to top FAB
                       if (_showFab)
                         Positioned(
                           bottom: 110,
@@ -224,7 +216,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                 ),
               ],
             ),
-            // Mobile sidebar overlay — positioned on top with proper z-index
             if (isMobile && _sidebarOpen)
               Positioned(
                 left: 0,
@@ -237,7 +228,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                       width: 280,
                       child: _buildSidebar(context, ref, settings),
                     ),
-                    // Scrim/overlay to close sidebar
                     Expanded(
                       child: GestureDetector(
                         onTap: () => setState(() => _sidebarOpen = false),
@@ -274,7 +264,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
       ),
       child: Column(
         children: [
-          // Sidebar header
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -291,7 +280,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textMuted,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -313,7 +301,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
             height: 0.5,
             thickness: 0.5,
           ),
-          // Albums list
           Expanded(
             child: FutureBuilder<List<AssetPathEntity>>(
               future: PhotoManager.getAssetPathList(
@@ -342,7 +329,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                     album: albums[i],
                     onTap: () {
                       ref.read(galleryProvider.notifier).switchAlbum(albums[i]);
-                      // Close sidebar on mobile after selection
                       if (MediaQuery.of(context).size.width < 768) {
                         setState(() => _sidebarOpen = false);
                       }
@@ -413,9 +399,7 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                     
                       const SizedBox(width: 8),
-                      // Album picker
                       GlassContainer(
                         borderRadius: 14,
                         padding: const EdgeInsets.symmetric(
@@ -448,7 +432,6 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          // Filter chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -514,6 +497,9 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
 
   void _showAlbumPicker(BuildContext context) {
     final albums = ref.read(albumsProvider).valueOrNull ?? [];
+    final isLiquid =
+        Theme.of(context).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+        true;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -523,25 +509,26 @@ class _GalleryScreenState extends ConsumerState<GalleryScreen> {
         minChildSize: 0.3,
         maxChildSize: 0.9,
         builder: (_, scrollCtrl) => GlassContainer(
-          borderRadius: 24,
+          borderRadius: isLiquid ? 32 : 16,
           margin: const EdgeInsets.only(top: 8),
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle bar
               Center(
                 child: Container(
                   width: 40,
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.textMuted,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-              Text('Albums', style: Theme.of(context).textTheme.titleLarge),
+              Text('Albums', style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 16),
               Expanded(
                 child: ListView.builder(
@@ -619,22 +606,44 @@ class _AlbumListTileState extends State<_AlbumListTile> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: AppColors.glassDark,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.glassBorder, width: 0.5),
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.glassDark
+              : AppColors.glassLight,
+          borderRadius: BorderRadius.circular(
+            (Theme.of(
+                      context,
+                    ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                    true)
+                ? 20
+                : 12,
+          ),
+          border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.glassBorder
+                : AppColors.glassLightBorder,
+            width: 0.5,
+          ),
         ),
         child: Row(
           children: [
-            // Album cover thumbnail
             ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(
+                (Theme.of(
+                          context,
+                        ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                        true)
+                    ? 14
+                    : 8,
+              ),
               child: SizedBox(
                 width: 56,
                 height: 56,
                 child: _coverThumb != null
                     ? Image.memory(_coverThumb!, fit: BoxFit.cover)
                     : Container(
-                        color: AppColors.darkCard,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkCard
+                            : Colors.black.withValues(alpha: 0.05),
                         child: const Icon(
                           Icons.photo_album_outlined,
                           color: AppColors.textMuted,
@@ -653,7 +662,6 @@ class _AlbumListTileState extends State<_AlbumListTile> {
                         ? 'All Photos'
                         : widget.album.name,
                     style: const TextStyle(
-                      color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
                     ),
@@ -663,9 +671,11 @@ class _AlbumListTileState extends State<_AlbumListTile> {
                   const SizedBox(height: 2),
                   Text(
                     '$_count items',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
                       fontSize: 12,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -708,10 +718,25 @@ class _FilterChip extends StatelessWidget {
           gradient: selected
               ? const LinearGradient(colors: AppColors.heroGradient)
               : null,
-          color: selected ? null : AppColors.glassDark,
-          borderRadius: BorderRadius.circular(20),
+          color: selected
+              ? null
+              : (Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.glassDark
+                    : AppColors.glassLight),
+          borderRadius: BorderRadius.circular(
+            Theme.of(
+                      context,
+                    ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                    true
+                ? 24
+                : 12,
+          ),
           border: Border.all(
-            color: selected ? Colors.transparent : AppColors.glassBorder,
+            color: selected
+                ? Colors.transparent
+                : (Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.glassBorder
+                      : AppColors.glassLightBorder),
             width: 0.8,
           ),
         ),
@@ -728,7 +753,9 @@ class _FilterChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: selected ? Colors.white : AppColors.textSecondary,
+                color: selected
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
                 fontSize: 13,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
               ),
@@ -798,17 +825,30 @@ class _AlbumSidebarItemState extends State<_AlbumSidebarItem> {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: _isHovering
-                ? AppColors.glassDark.withValues(alpha: 0.6)
+                ? (Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.glassDark
+                          : AppColors.glassLight)
+                      .withValues(alpha: 0.6)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(
+              (Theme.of(
+                        context,
+                      ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                      true)
+                  ? 16
+                  : 8,
+            ),
             border: Border.all(
-              color: _isHovering ? AppColors.glassBorder : Colors.transparent,
+              color: _isHovering
+                  ? (Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.glassBorder
+                        : AppColors.glassLightBorder)
+                  : Colors.transparent,
               width: 0.5,
             ),
           ),
           child: Row(
             children: [
-              // Album cover thumbnail
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: SizedBox(
@@ -987,7 +1027,13 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                     child: Row(
                       children: [
                         GlassContainer(
-                          borderRadius: 14,
+                          borderRadius:
+                              (Theme.of(context)
+                                      .extension<LiquidThemeExtension>()
+                                      ?.isLiquidDesign ??
+                                  true)
+                              ? 20
+                              : 12,
                           padding: const EdgeInsets.all(10),
                           onTap: () => Navigator.pop(context),
                           child: const Icon(
@@ -997,17 +1043,34 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                           ),
                         ),
                         const Spacer(),
-                        Text(
-                          '${_currentIndex + 1} / ${widget.assets.length}',
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 14,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${_currentIndex + 1} / ${widget.assets.length}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         // Info button
                         GlassContainer(
-                          borderRadius: 14,
+                          borderRadius:
+                              (Theme.of(context)
+                                      .extension<LiquidThemeExtension>()
+                                      ?.isLiquidDesign ??
+                                  true)
+                              ? 20
+                              : 12,
                           padding: const EdgeInsets.all(10),
                           onTap: () => _showMediaInfo(context, currentAsset),
                           child: const Icon(
@@ -1046,7 +1109,9 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                           _ActionButton(
                             icon: Icons.lock_outline_rounded,
                             label: 'Vault',
-                            onTap: _isAddingToVault ? null : () => _addToVault(context, currentAsset),
+                            onTap: _isAddingToVault
+                                ? null
+                                : () => _addToVault(context, currentAsset),
                             isLoading: _isAddingToVault,
                           ),
                           _ActionButton(
@@ -1068,23 +1133,26 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   }
 
   void _showMediaInfo(BuildContext context, MediaAsset asset) {
+    final isLiquid =
+        Theme.of(context).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+        true;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => GlassContainer(
-        borderRadius: 24,
+        borderRadius: isLiquid ? 32 : 16,
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Media Details',
               style: TextStyle(
                 fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w800,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 16),
@@ -1105,13 +1173,9 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   }
 
   Future<void> _shareMedia(MediaAsset asset) async {
-    // Basic share via file
     final file = await asset.entity.originFile;
     if (file != null && mounted) {
-      // Use platform-specific share
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Preparing to share...')));
+      // Basic share logic
     }
   }
 
@@ -1120,7 +1184,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(vaultProvider.notifier).addAsset(asset);
-      
       if (mounted) {
         messenger.showSnackBar(
           SnackBar(
@@ -1129,11 +1192,12 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                 const Icon(Icons.lock_rounded, color: Colors.white),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
+                  child: const Text(
                     'Added to Vault',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w500,
                       fontSize: 14,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -1143,7 +1207,9 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
             duration: const Duration(seconds: 3),
             margin: const EdgeInsets.all(16),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -1166,26 +1232,41 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   }
 
   Future<void> _deleteMedia(BuildContext context, MediaAsset asset) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.darkCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Delete Media?',
-          style: TextStyle(color: AppColors.textPrimary),
+        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            Theme.of(
+                      context,
+                    ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                    true
+                ? 24
+                : 12,
+          ),
         ),
-        content: const Text(
+        title: Text(
+          'Delete Media?',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
           'This will move the file to your device\'s trash/recycle bin.',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.textMuted),
-            ),
+            child: Opacity(opacity: 0.6, child: const Text('Cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -1193,7 +1274,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
               'Delete',
               style: TextStyle(
                 color: AppColors.error,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -1239,7 +1320,6 @@ class _ImagePageState extends State<_ImagePage> {
   }
 
   Future<void> _load() async {
-    // First load a higher-quality thumbnail quickly
     final thumb = await widget.asset.entity.thumbnailDataWithSize(
       const ThumbnailSize(800, 800),
       quality: 90,
@@ -1252,7 +1332,6 @@ class _ImagePageState extends State<_ImagePage> {
       });
     }
 
-    // Then load full resolution in background
     final fullBytes = await widget.asset.entity.originBytes;
     if (mounted && fullBytes != null) {
       setState(() => _bytes = fullBytes);
@@ -1330,29 +1409,6 @@ class _VideoPageState extends State<_VideoPage> {
           handleColor: AppColors.accent,
           backgroundColor: AppColors.glassDark,
           bufferedColor: AppColors.primaryLight.withValues(alpha: 0.3),
-        ),
-        errorBuilder: (ctx, errorMsg) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.error_outline_rounded,
-                color: AppColors.error,
-                size: 48,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Playback Error',
-                style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                errorMsg,
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
         ),
       );
 
@@ -1435,10 +1491,13 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLiquid =
+        Theme.of(context).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+        true;
     return GestureDetector(
       onTap: isLoading ? null : onTap,
       child: GlassContainer(
-        borderRadius: 16,
+        borderRadius: isLiquid ? 24 : 12,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         onTap: isLoading ? null : onTap,
         child: AnimatedOpacity(
@@ -1458,12 +1517,13 @@ class _ActionButton extends StatelessWidget {
                 )
               else
                 Icon(icon, color: Colors.white, size: 22),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
                 label,
                 style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -1483,20 +1543,25 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
           Text(
             label,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+            style: TextStyle(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+              fontSize: 13,
+            ),
           ),
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 13,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

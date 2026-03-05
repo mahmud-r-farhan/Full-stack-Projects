@@ -36,10 +36,16 @@ class GlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ext = Theme.of(context).extension<LiquidThemeExtension>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final effectiveBlur = ext?.isPerformanceMode == true ? 0.0 : blur;
 
+    // Pill shape if isLiquidDesign, otherwise boxy
+    final effectiveRadius = (ext?.isLiquidDesign ?? true)
+        ? (height != null ? height! / 2 : borderRadius * 2)
+        : 12.0;
+
     final glass = ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
+      borderRadius: BorderRadius.circular(effectiveRadius),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: effectiveBlur, sigmaY: effectiveBlur),
         child: Container(
@@ -49,14 +55,28 @@ class GlassContainer extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: gradient,
             color: gradient == null
-                ? (ext?.glassColor ?? AppColors.glassDark)
+                ? (ext?.glassColor ??
+                      (isDark ? AppColors.glassDark : AppColors.glassLight))
                 : null,
-            borderRadius: BorderRadius.circular(borderRadius),
+            borderRadius: BorderRadius.circular(effectiveRadius),
             border: border
                 ? Border.all(
-                    color: ext?.glassBorderColor ?? AppColors.glassBorder,
-                    width: 0.8,
+                    color:
+                        ext?.glassBorderColor ??
+                        (isDark
+                            ? AppColors.glassBorder
+                            : AppColors.glassLightBorder),
+                    width: isDark ? 0.8 : 1.0,
                   )
+                : null,
+            boxShadow: !isDark && !border
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
                 : null,
           ),
           child: child,
@@ -214,12 +234,16 @@ class GlassNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ext = Theme.of(context).extension<LiquidThemeExtension>();
+    final isLiquid = ext?.isLiquidDesign ?? true;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Positioned(
       bottom: 24,
       left: 24,
       right: 24,
       child: GlassContainer(
-        borderRadius: 28,
+        borderRadius: isLiquid ? 40 : 16,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -243,7 +267,7 @@ class GlassNavBar extends StatelessWidget {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(isLiquid ? 24 : 12),
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.primary.withValues(alpha: 0.4),
@@ -258,7 +282,11 @@ class GlassNavBar extends StatelessWidget {
                   children: [
                     Icon(
                       selected ? item.activeIcon : item.icon,
-                      color: selected ? Colors.white : AppColors.textMuted,
+                      color: selected
+                          ? Colors.white
+                          : (isDark
+                                ? AppColors.textMuted
+                                : AppColors.textMutedLight),
                       size: 22,
                     ),
                     if (selected) ...[
@@ -377,6 +405,7 @@ class _AnimatedGradientBackgroundState extends State<AnimatedGradientBackground>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, child) => Container(
@@ -384,11 +413,17 @@ class _AnimatedGradientBackgroundState extends State<AnimatedGradientBackground>
           gradient: LinearGradient(
             begin: _topLeft.value,
             end: _bottomRight.value,
-            colors: const [
-              Color(0xFF0A0A14),
-              Color(0xFF12082A),
-              Color(0xFF0A1628),
-            ],
+            colors: isDark
+                ? const [
+                    Color(0xFF0A0A14),
+                    Color(0xFF12082A),
+                    Color(0xFF0A1628),
+                  ]
+                : const [
+                    Color(0xFFF8F9FE),
+                    Color(0xFFF2F4FF),
+                    Color(0xFFF8F9FE),
+                  ],
           ),
         ),
         child: child,
@@ -425,7 +460,14 @@ class EmptyState extends StatelessWidget {
               width: 96,
               height: 96,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(
+                  (Theme.of(
+                            context,
+                          ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                          true)
+                      ? 32
+                      : 12,
+                ),
                 gradient: const LinearGradient(colors: AppColors.heroGradient),
               ),
               child: Icon(icon, size: 48, color: Colors.white),

@@ -38,9 +38,14 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Customize your Lumina Gallery experience.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
               ),
               const SizedBox(height: 28),
 
@@ -71,6 +76,20 @@ class SettingsScreen extends ConsumerWidget {
                   value: settings.isPerformanceMode,
                   activeTrackColor: AppColors.accent,
                   onChanged: (v) => notifier.setPerformanceMode(v),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              _SettingsTile(
+                icon: Icons.auto_awesome_rounded,
+                iconColor: AppColors.success,
+                title: 'Liquid Glass Design',
+                subtitle: 'Pill-shaped (Liquid) vs Box-shaped (Normal) UI',
+                trailing: Switch.adaptive(
+                  value: settings.isLiquidDesign,
+                  activeTrackColor: AppColors.success,
+                  onChanged: (v) => notifier.setLiquidDesign(v),
                 ),
               ),
 
@@ -201,7 +220,14 @@ class _SettingsTile extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(
+                (Theme.of(
+                          context,
+                        ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                        true)
+                    ? 14
+                    : 8,
+              ),
               color: iconColor.withValues(alpha: 0.15),
             ),
             child: Icon(icon, color: iconColor, size: 22),
@@ -214,18 +240,16 @@ class _SettingsTile extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                    height: 1.4,
+                Opacity(
+                  opacity: 0.7,
+                  child: Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, height: 1.4),
                   ),
                 ),
               ],
@@ -255,11 +279,7 @@ class _GridColumnPicker extends StatelessWidget {
         children: [
           const Text(
             'Columns per row',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
           const SizedBox(height: 14),
           Row(
@@ -273,7 +293,14 @@ class _GridColumnPicker extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(
+                      (Theme.of(context)
+                                  .extension<LiquidThemeExtension>()
+                                  ?.isLiquidDesign ??
+                              true)
+                          ? 20
+                          : 10,
+                    ),
                     gradient: selected
                         ? const LinearGradient(colors: AppColors.heroGradient)
                         : null,
@@ -292,7 +319,7 @@ class _GridColumnPicker extends StatelessWidget {
                         style: TextStyle(
                           color: selected
                               ? Colors.white
-                              : AppColors.textSecondary,
+                              : Theme.of(context).colorScheme.onSurface,
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
                         ),
@@ -302,7 +329,9 @@ class _GridColumnPicker extends StatelessWidget {
                         style: TextStyle(
                           color: selected
                               ? Colors.white70
-                              : AppColors.textMuted,
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.5),
                           fontSize: 10,
                         ),
                       ),
@@ -334,7 +363,14 @@ class _FormatsCard extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(
+                    (Theme.of(context)
+                                .extension<LiquidThemeExtension>()
+                                ?.isLiquidDesign ??
+                            true)
+                        ? 12
+                        : 6,
+                  ),
                   color: AppColors.accent.withValues(alpha: 0.15),
                 ),
                 child: const Icon(
@@ -372,7 +408,14 @@ class _FormatsCard extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(
+                    (Theme.of(context)
+                                .extension<LiquidThemeExtension>()
+                                ?.isLiquidDesign ??
+                            true)
+                        ? 12
+                        : 6,
+                  ),
                   color: AppColors.primary.withValues(alpha: 0.15),
                 ),
                 child: const Icon(
@@ -418,7 +461,14 @@ class _FormatChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.glassDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(
+          (Theme.of(
+                    context,
+                  ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                  true)
+              ? 12
+              : 4,
+        ),
         border: Border.all(color: AppColors.glassBorder, width: 0.5),
       ),
       child: Text(
@@ -454,7 +504,14 @@ class _AboutCard extends StatelessWidget {
                 width: 54,
                 height: 54,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(
+                    (Theme.of(context)
+                                .extension<LiquidThemeExtension>()
+                                ?.isLiquidDesign ??
+                            true)
+                        ? 18
+                        : 10,
+                  ),
                   gradient: const LinearGradient(
                     colors: AppColors.heroGradient,
                   ),

@@ -1713,6 +1713,110 @@ if (hasMore) {
 </html>
 ''';
 
+  // ─── Dynamic folder browsing ────────────────────────────
+
+  /// Lists folders in a given path for dynamic folder browser
+  Future<List<ShareableDirectory>> listFoldersInPath(String? path) async {
+    try {
+      if (path == null || path.isEmpty || path == 'root') {
+        // Show root storage options
+        final dirs = <ShareableDirectory>[];
+
+        // System Photos
+        dirs.add(
+          ShareableDirectory(
+            name: 'All Photos',
+            path: 'PHOTOS_SYSTEM',
+            type: StorageType.systemPhotos,
+            displayPath: 'Device Photos',
+          ),
+        );
+
+        // Downloads
+        final downloadsDir = await getDownloadsDirectory();
+        if (downloadsDir != null) {
+          dirs.add(
+            ShareableDirectory(
+              name: 'Downloads',
+              path: downloadsDir.path,
+              type: StorageType.downloads,
+              displayPath: 'Downloads',
+            ),
+          );
+        }
+
+        // Documents
+        final documentsDir = await getApplicationDocumentsDirectory();
+        dirs.add(
+          ShareableDirectory(
+            name: 'Documents',
+            path: documentsDir.path,
+            type: StorageType.documents,
+            displayPath: 'Documents',
+          ),
+        );
+
+        // External Storage
+        try {
+          final externalDir = await getExternalStorageDirectory();
+          if (externalDir != null) {
+            dirs.add(
+              ShareableDirectory(
+                name: 'External Storage',
+                path: externalDir.path,
+                type: StorageType.externalStorage,
+                displayPath: 'External Storage',
+              ),
+            );
+          }
+        } catch (_) {}
+
+        return dirs;
+      }
+
+      // For system photos, can't browse into subfolders
+      if (path == 'PHOTOS_SYSTEM') {
+        return [];
+      }
+
+      // List actual folders in the specified path
+      final dir = Directory(path);
+      if (!await dir.exists()) {
+        return [];
+      }
+
+      final folders = <ShareableDirectory>[];
+      try {
+        final entities = await dir.list().toList();
+        
+        for (final entity in entities) {
+          if (entity is Directory) {
+            final name = entity.path.split('/').last;
+            
+            // Skip hidden folders and system folders
+            if (!name.startsWith('.')) {
+              folders.add(
+                ShareableDirectory(
+                  name: name,
+                  path: entity.path,
+                  type: StorageType.externalStorage,
+                  displayPath: name,
+                ),
+              );
+            }
+          }
+        }
+
+        // Sort folders alphabetically
+        folders.sort((a, b) => a.name.compareTo(b.name));
+      } catch (_) {}
+
+      return folders;
+    } catch (_) {
+      return [];
+    }
+  }
+
   void dispose() {
     stopServer();
     _infoController.close();

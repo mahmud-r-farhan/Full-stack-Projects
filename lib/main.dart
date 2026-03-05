@@ -67,11 +67,17 @@ class LuminaGalleryApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
 
           // ── Themes
-          theme: AppTheme.light(dynamicScheme: lightDynamic),
-          darkTheme: AppTheme.dark(dynamicScheme: darkDynamic),
+          theme: AppTheme.light(
+            isLiquidDesign: settings.isLiquidDesign,
+            dynamicScheme: lightDynamic,
+          ),
+          darkTheme: AppTheme.dark(
+            isLiquidDesign: settings.isLiquidDesign,
+            dynamicScheme: darkDynamic,
+          ),
           themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
 
-          // ── Performance mode: propagate to theme extension
+          // ── Performance mode & Design settings: propagate to theme extension
           builder: (context, child) {
             final base = Theme.of(context);
             final ext = base.extension<LiquidThemeExtension>();
@@ -80,6 +86,7 @@ class LuminaGalleryApp extends ConsumerWidget {
                 extensions: [
                   (ext ?? const LiquidThemeExtension.dark()).copyWith(
                     isPerformanceMode: settings.isPerformanceMode,
+                    isLiquidDesign: settings.isLiquidDesign,
                     blurSigma: settings.isPerformanceMode ? 0 : 20,
                   ),
                 ],

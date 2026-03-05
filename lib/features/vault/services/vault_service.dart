@@ -48,18 +48,21 @@ class VaultService {
 
   // ─── File map operations ───────────────────────────────
 
+  /// Loads file mappings: assetId -> "originalPath|vaultPath"
+  /// Format: assetId::originalPath|vaultPath|||assetId2::...
+  /// This allows us to hide files from device (original deleted) and restore them
   Future<Map<String, String>> _loadFileMap() async {
     try {
       final raw = await _storage.read(key: _vaultFileMapKey);
       if (raw == null || raw.isEmpty) return {};
       
-      final entries = raw.split('|');
+      final entries = raw.split('|||');
       final map = <String, String>{};
       for (final entry in entries) {
         if (entry.isNotEmpty) {
           final parts = entry.split('::');
           if (parts.length == 2) {
-            map[parts[0]] = parts[1];
+            map[parts[0]] = parts[1]; // assetId -> "originalPath|vaultPath"
           }
         }
       }
@@ -69,9 +72,10 @@ class VaultService {
     }
   }
 
+  /// Saves file mappings with separator '|||' to distinguish from pipe in paths
   Future<void> _saveFileMap(Map<String, String> map) async {
     try {
-      final raw = map.entries.map((e) => '${e.key}::${e.value}').join('|');
+      final raw = map.entries.map((e) => '${e.key}::${e.value}').join('|||');
       await _storage.write(key: _vaultFileMapKey, value: raw);
     } catch (e) {
       throw VaultException('Failed to save file map: $e');
@@ -199,7 +203,14 @@ class VaultService {
       try {
         final entity = await AssetEntity.fromId(id);
         if (entity != null) {
-          final vaultPath = fileMap[id];
+          final mapping = fileMap[id];
+          // Extract vault path from "originalPath|vaultPath" format
+          final vaultPath = mapping != null 
+            ? mapping.split('|').length == 2 
+              ? mapping.split('|')[1]
+              : mapping // fallback for old format
+            : null;
+          
           assets.add(MediaAsset(
             entity: entity,
             isVaulted: true,
@@ -221,8 +232,9 @@ class VaultService {
   }
 
   // ─── Add to vault ────────────────────────────────────────
-  /// Adds an asset to the vault by storing a hidden copy
-  /// The asset becomes unavailable in the system gallery
+  /// Adds an asset to the vault by MOVING file to hidden directory
+  /// This makes the file unavailable in the system gallery
+  /// Original location is stored for recovery if removed from vault
 
   Future<bool> addToVault(MediaAsset asset) async {
     try {
@@ -238,20 +250,26 @@ class VaultService {
         return true; // Already vaulted
       }
 
+      // Store original path for later recovery
+      final originalPath = file.path;
       final vaultDir = await _getVaultDirectory();
       
       // Create a unique filename with timestamp
       final ext = file.path.split('.').last;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final vaultFileName = '${asset.id}_$timestamp.$ext';
-      final vaultFile = File('${vaultDir.path}/$vaultFileName');
+      final vaultFilePath = '${vaultDir.path}/$vaultFileName';
 
-      // Copy file to vault (moving instead of copying for privacy)
-      await file.copy(vaultFile.path);
+      // Copy file to vault, then delete original to hide from device gallery
+      await file.copy(vaultFilePath);
+      await file.delete();
 
-      // Save the mapping
+      // Note: PhotoManager and MediaStore will automatically refresh as the file
+      // is no longer accessible, causing it to disappear from device gallery
+
+      // Save mapping: assetId -> "originalPath|vaultPath"
       final fileMap = await _loadFileMap();
-      fileMap[asset.id] = vaultFile.path;
+      fileMap[asset.id] = '$originalPath|$vaultFilePath';
       await _saveFileMap(fileMap);
 
       // Add to vault IDs
@@ -265,18 +283,48 @@ class VaultService {
   }
 
   // ─── Remove from vault ───────────────────────────────────
-  /// Removes an asset from the vault, making it available in the gallery again
+  /// Removes an asset from the vault, restoring it to original location
+  /// If original directory no longer exists, restores to safe default location
 
   Future<bool> removeFromVault(String assetId) async {
     try {
       final fileMap = await _loadFileMap();
-      final vaultPath = fileMap[assetId];
+      final mapping = fileMap[assetId];
 
-      if (vaultPath != null) {
-        final vaultFile = File(vaultPath);
-        if (await vaultFile.exists()) {
-          // File operations are transparent - photo_manager will show it again
-          // We keep the file but remove it from vault tracking
+      if (mapping != null) {
+        try {
+          // Parse mapping: "originalPath|vaultPath"
+          final parts = mapping.split('|');
+          if (parts.length == 2) {
+            final originalPath = parts[0];
+            final vaultPath = parts[1];
+            final vaultFile = File(vaultPath);
+
+            if (await vaultFile.exists()) {
+              final originalFile = File(originalPath);
+              final originalDir = originalFile.parent;
+
+              // Try to restore to original location if directory still exists
+              if (await originalDir.exists()) {
+                await vaultFile.copy(originalPath);
+              } else {
+                // Fallback: restore to Documents/RestoreFromVault directory
+                final appDir = await getApplicationDocumentsDirectory();
+                final fallbackPath = '${appDir.path}/RestoreFromVault/${originalFile.path.split('/').last}';
+                final fallbackDir = Directory(fallbackPath).parent;
+                await fallbackDir.create(recursive: true);
+                await vaultFile.copy(fallbackPath);
+              }
+
+              // Delete from vault
+              await vaultFile.delete();
+
+              // Note: PhotoManager and MediaStore will automatically refresh as the file
+              // is restored to a standard gallery location, causing it to reappear in device gallery
+            }
+          }
+        } catch (_) {
+          // If restoration fails, continue with cleanup
         }
       }
 

@@ -27,6 +27,7 @@ class AppConstants {
   // Preferences keys
   static const String prefsDarkMode = 'dark_mode';
   static const String prefsPerformanceMode = 'performance_mode';
+  static const String prefsLiquidDesign = 'liquid_design';
   static const String prefsOnboardingDone = 'onboarding_done';
   static const String prefsVaultSetup = 'vault_setup';
   static const String prefsGridColumns = 'grid_columns';

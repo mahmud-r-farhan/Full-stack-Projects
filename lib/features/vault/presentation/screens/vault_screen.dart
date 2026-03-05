@@ -32,10 +32,7 @@ class VaultScreen extends ConsumerWidget {
               children: [
                 CircularProgressIndicator(color: AppColors.accentWarm),
                 SizedBox(height: 20),
-                Text(
-                  'Authenticating…',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
+                Text('Authenticating…'),
               ],
             ),
           ),
@@ -94,11 +91,13 @@ class _LockedView extends ConsumerWidget {
             style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Your most private moments, protected by biometrics or device PIN.\nNothing stored here is visible to other apps.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
               fontSize: 15,
               height: 1.6,
             ),
@@ -106,7 +105,13 @@ class _LockedView extends ConsumerWidget {
           if (errorMessage != null) ...[
             const SizedBox(height: 16),
             GlassContainer(
-              borderRadius: 14,
+              borderRadius:
+                  (Theme.of(
+                        context,
+                      ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                      true)
+                  ? 24
+                  : 12,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -141,20 +146,28 @@ class _LockedView extends ConsumerWidget {
           ).animate().slideY(begin: 0.3).fadeIn(delay: 300.ms),
           const SizedBox(height: 16),
           GlassContainer(
-            borderRadius: 14,
+            borderRadius:
+                Theme.of(
+                      context,
+                    ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                    true
+                ? 24
+                : 12,
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.info_outline_rounded,
-                  color: AppColors.textMuted,
-                  size: 16,
+                Opacity(
+                  opacity: 0.6,
+                  child: const Icon(Icons.info_outline_rounded, size: 16),
                 ),
-                SizedBox(width: 8),
-                Text(
-                  'Biometrics, PIN, or pattern accepted',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                const SizedBox(width: 8),
+                Opacity(
+                  opacity: 0.6,
+                  child: const Text(
+                    'Biometrics, PIN, or pattern accepted',
+                    style: TextStyle(fontSize: 13),
+                  ),
                 ),
               ],
             ),
@@ -214,7 +227,14 @@ class _UnlockedView extends ConsumerWidget {
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
                     color: AppColors.accentWarm.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(
+                      (Theme.of(context)
+                                  .extension<LiquidThemeExtension>()
+                                  ?.isLiquidDesign ??
+                              true)
+                          ? 12
+                          : 6,
+                    ),
                   ),
                   child: Text(
                     '${state.assets.length}',
@@ -225,9 +245,14 @@ class _UnlockedView extends ConsumerWidget {
                     ),
                   ),
                 ),
-              // Add button
               GlassContainer(
-                borderRadius: 12,
+                borderRadius:
+                    (Theme.of(
+                          context,
+                        ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                        true)
+                    ? 20
+                    : 12,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 8,
@@ -235,11 +260,7 @@ class _UnlockedView extends ConsumerWidget {
                 onTap: () => _showAddAssetDialog(context, ref),
                 child: const Row(
                   children: [
-                    Icon(
-                      Icons.add_rounded,
-                      color: AppColors.success,
-                      size: 16,
-                    ),
+                    Icon(Icons.add_rounded, color: AppColors.success, size: 16),
                     SizedBox(width: 6),
                     Text(
                       'Add',
@@ -255,7 +276,13 @@ class _UnlockedView extends ConsumerWidget {
               const SizedBox(width: 8),
               // Lock button
               GlassContainer(
-                borderRadius: 12,
+                borderRadius:
+                    (Theme.of(
+                          context,
+                        ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                        true)
+                    ? 20
+                    : 12,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 8,
@@ -340,10 +367,15 @@ class _EmptyVaultState extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: AppColors.vaultGradient,
+              borderRadius: BorderRadius.circular(
+                (Theme.of(
+                          context,
+                        ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                        true)
+                    ? 32
+                    : 12,
               ),
+              gradient: const LinearGradient(colors: AppColors.vaultGradient),
             ),
             child: const Icon(
               Icons.add_photo_alternate_outlined,
@@ -354,19 +386,17 @@ class _EmptyVaultState extends StatelessWidget {
           const SizedBox(height: 24),
           const Text(
             'Vault is Empty',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Add photos and videos to keep them private and hidden.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
-              color: AppColors.textSecondary,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 24),
@@ -395,7 +425,13 @@ class _AddAssetDialog extends ConsumerWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: GlassContainer(
-        borderRadius: 24,
+        borderRadius:
+            (Theme.of(
+                  context,
+                ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                true)
+            ? 32
+            : 16,
         padding: const EdgeInsets.all(20),
         child: Material(
           color: Colors.transparent,
@@ -407,11 +443,7 @@ class _AddAssetDialog extends ConsumerWidget {
                 children: [
                   const Text(
                     'Add to Vault',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                   const Spacer(),
                   GestureDetector(
@@ -458,15 +490,16 @@ class _AddAssetDialog extends ConsumerWidget {
                             child: GridView.builder(
                               gridDelegate:
                                   const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                              ),
+                                    crossAxisCount: 4,
+                                    crossAxisSpacing: 8,
+                                    mainAxisSpacing: 8,
+                                  ),
                               itemCount: assets.length,
                               itemBuilder: (ctx, i) {
                                 final asset = assets[i];
-                                final isSelected =
-                                    selected.any((a) => a.id == asset.id);
+                                final isSelected = selected.any(
+                                  (a) => a.id == asset.id,
+                                );
                                 return _AssetSelectTile(
                                   asset: asset,
                                   isSelected: isSelected,
@@ -474,7 +507,8 @@ class _AddAssetDialog extends ConsumerWidget {
                                     setState(() {
                                       if (isSelected) {
                                         selected.removeWhere(
-                                            (a) => a.id == asset.id);
+                                          (a) => a.id == asset.id,
+                                        );
                                       } else {
                                         selected.add(asset);
                                       }
@@ -493,14 +527,16 @@ class _AddAssetDialog extends ConsumerWidget {
                                 child: const Text(
                                   'Cancel',
                                   style: TextStyle(
-                                      color: AppColors.textSecondary),
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),
                               GlassButton(
                                 label: 'Add (${selected.length})',
                                 gradient: const LinearGradient(
-                                    colors: AppColors.vaultGradient),
+                                  colors: AppColors.vaultGradient,
+                                ),
                                 isLoading: false,
                                 onPressed: selected.isEmpty
                                     ? null
@@ -517,8 +553,7 @@ class _AddAssetDialog extends ConsumerWidget {
                 },
                 loading: () => const Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
-                  child: CircularProgressIndicator(
-                      color: AppColors.accentWarm),
+                  child: CircularProgressIndicator(color: AppColors.accentWarm),
                 ),
                 error: (err, stack) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 40),
@@ -585,34 +620,44 @@ class _AssetSelectTileState extends State<_AssetSelectTile> {
 
   @override
   Widget build(BuildContext context) {
+    final radius =
+        (Theme.of(context).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+            true)
+        ? 14.0
+        : 6.0;
+
     return GestureDetector(
       onTap: widget.onTap,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (_thumb != null)
-            Image.memory(_thumb!, fit: BoxFit.cover)
-          else
-            Container(color: const Color(0xFF1A1A2E)),
-          // Selection overlay
-          if (widget.isSelected)
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.3),
-                border: Border.all(
-                  color: AppColors.success,
-                  width: 2,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_thumb != null)
+              Image.memory(_thumb!, fit: BoxFit.cover)
+            else
+              Container(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1A1A2E)
+                    : Colors.black.withValues(alpha: 0.1),
+              ),
+            // Selection overlay
+            if (widget.isSelected)
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.3),
+                  border: Border.all(color: AppColors.success, width: 2),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success,
+                    size: 28,
+                  ),
                 ),
               ),
-              child: const Center(
-                child: Icon(
-                  Icons.check_circle_rounded,
-                  color: AppColors.success,
-                  size: 28,
-                ),
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -647,39 +692,52 @@ class _VaultTileState extends State<_VaultTile> {
 
   @override
   Widget build(BuildContext context) {
+    final radius =
+        (Theme.of(context).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+            true)
+        ? 16.0
+        : 4.0;
+
     return GestureDetector(
       onLongPress: () => _showActions(context),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (_thumb != null)
-            Image.memory(_thumb!, fit: BoxFit.cover)
-          else
-            Container(color: const Color(0xFF1A1A2E)),
-          // Vault overlay tint
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  AppColors.accentWarm.withValues(alpha: 0.15),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_thumb != null)
+              Image.memory(_thumb!, fit: BoxFit.cover)
+            else
+              Container(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1A1A2E)
+                    : Colors.black.withValues(alpha: 0.1),
+              ),
+            // Vault overlay tint
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    AppColors.accentWarm.withValues(alpha: 0.15),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
-          ),
-          // Lock badge
-          const Positioned(
-            top: 6,
-            right: 6,
-            child: Icon(
-              Icons.lock_rounded,
-              color: AppColors.accentWarm,
-              size: 14,
+            // Lock badge
+            const Positioned(
+              top: 6,
+              right: 6,
+              child: Icon(
+                Icons.lock_rounded,
+                color: AppColors.accentWarm,
+                size: 14,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -689,7 +747,13 @@ class _VaultTileState extends State<_VaultTile> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => GlassContainer(
-        borderRadius: 24,
+        borderRadius:
+            (Theme.of(
+                  context,
+                ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                true)
+            ? 32
+            : 16,
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(20),
         child: Column(

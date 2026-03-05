@@ -69,10 +69,12 @@ class SharingScreen extends ConsumerWidget {
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const Text(
+                        Text(
                           'Share locally — no internet needed',
                           style: TextStyle(
-                            color: AppColors.textMuted,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                             fontSize: 13,
                           ),
                         ),
@@ -92,7 +94,7 @@ class SharingScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // ── Directory Selection (if not running)
-              if (!serverInfo.isRunning) _DirectorySelector(),
+              if (!serverInfo.isRunning) _FolderDropdownSelector(),
             ],
           ),
         ),
@@ -109,7 +111,13 @@ class _ShareCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return GlassContainer(
-      borderRadius: 24,
+      borderRadius:
+          (Theme.of(
+                context,
+              ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+              true)
+          ? 32
+          : 16,
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
@@ -169,7 +177,14 @@ class _ActiveServerView extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.success.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(
+              (Theme.of(
+                        context,
+                      ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                      true)
+                  ? 24
+                  : 12,
+            ),
             border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
           ),
           child: Row(
@@ -208,10 +223,21 @@ class _ActiveServerView extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(
+              Theme.of(
+                        context,
+                      ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                      true
+                  ? 24
+                  : 12,
+            ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.accent.withValues(alpha: 0.15),
+                color: Colors.black.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.3
+                      : 0.08,
+                ),
                 blurRadius: 24,
                 spreadRadius: 4,
               ),
@@ -236,7 +262,13 @@ class _ActiveServerView extends StatelessWidget {
 
         // URL chip with copy button
         GlassContainer(
-          borderRadius: 12,
+          borderRadius:
+              (Theme.of(
+                    context,
+                  ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                  true)
+              ? 20
+              : 8,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -261,11 +293,13 @@ class _ActiveServerView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
+        Text(
           'Scan the QR code or open the URL on any device\non the same Wi-Fi network',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
             fontSize: 12,
             height: 1.5,
           ),
@@ -339,16 +373,15 @@ class _StartingView extends StatelessWidget {
         const SizedBox(height: 20),
         const Text(
           'Starting server…',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
-        const Text(
-          'Setting up local network',
-          style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+        Opacity(
+          opacity: 0.6,
+          child: const Text(
+            'Setting up local network',
+            style: TextStyle(fontSize: 12),
+          ),
         ),
       ],
     );
@@ -369,8 +402,15 @@ class _StoppedView extends StatelessWidget {
           height: 80,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.glassDark,
-            border: Border.all(color: AppColors.glassBorder, width: 1),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.glassDark
+                : AppColors.glassLight,
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.glassBorder
+                  : AppColors.glassLightBorder,
+              width: 1,
+            ),
           ),
           child: const Icon(
             Icons.wifi_off_rounded,
@@ -381,18 +421,16 @@ class _StoppedView extends StatelessWidget {
         const SizedBox(height: 16),
         const Text(
           'Server Stopped',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textSecondary,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'Tap the button below to start sharing\nyour gallery on the local network',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
             fontSize: 13,
             height: 1.5,
           ),
@@ -410,7 +448,13 @@ class _ErrorBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassContainer(
-      borderRadius: 12,
+      borderRadius:
+          (Theme.of(
+                context,
+              ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+              true)
+          ? 20
+          : 8,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
@@ -495,11 +539,7 @@ class _RunningFeatures extends StatelessWidget {
             const SizedBox(width: 10),
             const Text(
               'Active Features',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -509,7 +549,13 @@ class _RunningFeatures extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: GlassContainer(
-              borderRadius: 14,
+              borderRadius:
+                  (Theme.of(
+                        context,
+                      ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                      true)
+                  ? 24
+                  : 12,
               padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
@@ -529,17 +575,18 @@ class _RunningFeatures extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
                             fontSize: 14,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           subtitle,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                             fontSize: 12,
                             height: 1.4,
                           ),
@@ -621,7 +668,13 @@ class _HowItWorks extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: GlassContainer(
-              borderRadius: 16,
+              borderRadius:
+                  (Theme.of(
+                        context,
+                      ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                      true)
+                  ? 24
+                  : 12,
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
@@ -669,7 +722,13 @@ class _HowItWorks extends StatelessWidget {
         const SizedBox(height: 16),
         Center(
           child: GlassContainer(
-            borderRadius: 14,
+            borderRadius:
+                (Theme.of(
+                      context,
+                    ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                    true)
+                ? 24
+                : 12,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
@@ -696,318 +755,341 @@ class _HowItWorks extends StatelessWidget {
     );
   }
 }
-// ─── Directory Selector ────────────────────────────────────
-class _DirectorySelector extends ConsumerWidget {
-  const _DirectorySelector();
+
+// ─── Simple Folder Dropdown Selector ──────────────────────
+/// Quick folder selection dropdown to start sharing instantly
+class _FolderDropdownSelector extends ConsumerStatefulWidget {
+  const _FolderDropdownSelector();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final directories = ref.watch(availableDirectoriesProvider);
-
-    return directories.when(
-      data: (dirs) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with icon
-          Row(
-            children: [
-              Container(
-                width: 6,
-                height: 22,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: AppColors.shareGradient,
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'Select Folder to Share',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Padding(
-            padding: EdgeInsets.only(left: 16),
-            child: Text(
-              'Choose where to share photos and videos from',
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Directory cards
-          ...dirs.asMap().entries.map((e) {
-            final index = e.key;
-            final dir = e.value;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _DirectoryCard(
-                directory: dir,
-                isFirst: index == 0,
-                isLast: index == dirs.length - 1,
-              ),
-            );
-          }),
-
-          const SizedBox(height: 12),
-          // Info banner
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.accentWarm.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: AppColors.accentWarm.withValues(alpha: 0.2),
-              ),
-            ),
-            child: const Row(
-              children: [
-                Icon(
-                  Icons.info_outline_rounded,
-                  color: AppColors.accentWarm,
-                  size: 16,
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Files will be served only from the selected folder and its subfolders.',
-                    style: TextStyle(
-                      color: AppColors.accentWarm,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      loading: () => const Center(
-        child: SizedBox(
-          height: 100,
-          child: CircularProgressIndicator(
-            color: AppColors.accent,
-          ),
-        ),
-      ),
-      error: (err, stack) => GlassContainer(
-        borderRadius: 20,
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              color: AppColors.warning,
-              size: 32,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Error loading directories: $err',
-              style: const TextStyle(
-                color: AppColors.warning,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  ConsumerState<_FolderDropdownSelector> createState() =>
+      _FolderDropdownSelectorState();
 }
 
-// ─── Directory Card ────────────────────────────────────
-class _DirectoryCard extends ConsumerWidget {
-  const _DirectoryCard({
-    required this.directory,
-    this.isFirst = false,
-    this.isLast = false,
-  });
-
-  final ShareableDirectory directory;
-  final bool isFirst;
-  final bool isLast;
+class _FolderDropdownSelectorState
+    extends ConsumerState<_FolderDropdownSelector> {
+  ShareableDirectory? selectedFolder;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onTap: () {
-        ref.read(lanShareProvider.notifier).startServer(
-          sharePath: directory.path,
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
+  Widget build(BuildContext context) {
+    final foldersAsync = ref.watch(folderBrowserProvider);
+
+    return foldersAsync.when(
+      data: (folders) {
+        // Set default selection if not already set
+        if (selectedFolder == null && folders.isNotEmpty) {
+          selectedFolder = folders.first;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Started sharing from ${directory.name}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
+                Container(
+                  width: 6,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: AppColors.shareGradient,
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
+                    borderRadius: BorderRadius.circular(3),
                   ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Select Folder to Share',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                 ),
               ],
             ),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 3),
-            margin: const EdgeInsets.all(16),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+            const SizedBox(height: 6),
+            const Padding(
+              padding: EdgeInsets.only(left: 16),
+              child: Text(
+                'Choose a folder or use All Photos as default',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+              ),
             ),
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(isFirst ? 16 : 0),
-            bottom: Radius.circular(isLast ? 16 : 0),
-          ),
-          border: Border(
-            top: isFirst
-                ? BorderSide(color: AppColors.glassBorder.withValues(alpha: 0.3))
-                : BorderSide(color: AppColors.glassBorder.withValues(alpha: 0.15)),
-            bottom: BorderSide(
-              color: isLast
-                  ? AppColors.glassBorder.withValues(alpha: 0.3)
-                  : AppColors.glassBorder.withValues(alpha: 0.15),
-            ),
-            left: BorderSide(color: AppColors.glassBorder.withValues(alpha: 0.3)),
-            right: BorderSide(color: AppColors.glassBorder.withValues(alpha: 0.3)),
-          ),
-          color: AppColors.glassDark.withValues(alpha: 0.4),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              ref.read(lanShareProvider.notifier).startServer(
-                sharePath: directory.path,
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Row(
-                    children: [
-                      const Icon(Icons.check_circle_rounded,
-                          color: Colors.white),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Started sharing from ${directory.name}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  backgroundColor: AppColors.success,
-                  duration: const Duration(seconds: 3),
-                  margin: const EdgeInsets.all(16),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  // Icon
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.accent.withValues(alpha: 0.2),
-                          AppColors.primary.withValues(alpha: 0.1),
-                        ],
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        directory.icon,
-                        style: const TextStyle(fontSize: 24),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
+            const SizedBox(height: 16),
 
-                  // Text content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          directory.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                            fontSize: 15,
-                            letterSpacing: -0.3,
-                          ),
+            // Dropdown selector
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color:
+                      (Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.glassBorder
+                              : AppColors.glassLightBorder)
+                          .withValues(alpha: 0.3),
+                ),
+                borderRadius: BorderRadius.circular(
+                  (Theme.of(
+                            context,
+                          ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                          true)
+                      ? 20
+                      : 10,
+                ),
+                color:
+                    (Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.glassDark
+                            : AppColors.glassLight)
+                        .withValues(alpha: 0.4),
+              ),
+              child: DropdownButton<ShareableDirectory>(
+                value: selectedFolder,
+                isExpanded: true,
+                underline: const SizedBox(),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                items: folders
+                    .map(
+                      (folder) => DropdownMenuItem(
+                        value: folder,
+                        child: Row(
+                          children: [
+                            Text(
+                              folder.icon,
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    folder.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    folder.displayPath,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (folder) {
+                  setState(() {
+                    selectedFolder = folder;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Start Sharing Button
+            SizedBox(
+              width: double.infinity,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: selectedFolder != null
+                      ? () {
+                          final path = selectedFolder!.path == 'PHOTOS_SYSTEM'
+                              ? null
+                              : selectedFolder!.path;
+                          ref
+                              .read(lanShareProvider.notifier)
+                              .startServer(sharePath: path);
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Started sharing from ${selectedFolder!.name}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: AppColors.success,
+                              duration: const Duration(seconds: 3),
+                              margin: const EdgeInsets.all(16),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  (Theme.of(context)
+                                              .extension<LiquidThemeExtension>()
+                                              ?.isLiquidDesign ??
+                                          true)
+                                      ? 24
+                                      : 12,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      : null,
+                  borderRadius: BorderRadius.circular(
+                    (Theme.of(context)
+                                .extension<LiquidThemeExtension>()
+                                ?.isLiquidDesign ??
+                            true)
+                        ? 24
+                        : 12,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      gradient: selectedFolder == null
+                          ? LinearGradient(
+                              colors: [
+                                AppColors.accent.withValues(alpha: 0.3),
+                                AppColors.primary.withValues(alpha: 0.3),
+                              ],
+                            )
+                          : const LinearGradient(
+                              colors: AppColors.shareGradient,
+                            ),
+                      borderRadius: BorderRadius.circular(
+                        (Theme.of(context)
+                                    .extension<LiquidThemeExtension>()
+                                    ?.isLiquidDesign ??
+                                true)
+                            ? 24
+                            : 12,
+                      ),
+                      boxShadow: selectedFolder == null
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: AppColors.accent.withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.share_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        SizedBox(width: 8),
                         Text(
-                          directory.displayPath,
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12,
+                          'Start Sharing',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
+                ),
+              ),
+            ),
 
-                  // Arrow indicator
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.accent.withValues(alpha: 0.1),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.arrow_forward_rounded,
-                        color: AppColors.accent,
-                        size: 18,
+            const SizedBox(height: 12),
+            // Info Banner
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.accentWarm.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(
+                  (Theme.of(
+                            context,
+                          ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                          true)
+                      ? 20
+                      : 8,
+                ),
+                border: Border.all(
+                  color: AppColors.accentWarm.withValues(alpha: 0.2),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: AppColors.accentWarm,
+                    size: 16,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Files will be served only from the selected folder and its subfolders.',
+                      style: TextStyle(
+                        color: AppColors.accentWarm,
+                        fontSize: 12,
+                        height: 1.4,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
+          ],
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 30),
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.accent),
         ),
       ),
-    ).animate().slideX(begin: -0.05).fadeIn();
+      error: (err, _) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(
+            (Theme.of(
+                      context,
+                    ).extension<LiquidThemeExtension>()?.isLiquidDesign ??
+                    true)
+                ? 20
+                : 8,
+          ),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: AppColors.warning,
+              size: 16,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Error loading folders: $err',
+                style: const TextStyle(color: AppColors.warning, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
