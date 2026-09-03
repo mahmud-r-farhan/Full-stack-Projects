@@ -216,7 +216,7 @@ class LanShareService {
 
       // If sharing a folder from filesystem (Downloads, Documents, etc.)
       if (sharePath != null && sharePath != 'PHOTOS_SYSTEM') {
-        return _handleFolderAlbums(sharePath);
+        return await _handleFolderAlbums(sharePath);
       }
 
       // Otherwise, use PhotoManager for system photos
@@ -313,7 +313,7 @@ class LanShareService {
 
       // If sharing a folder from filesystem
       if (sharePath != null && sharePath != 'PHOTOS_SYSTEM') {
-        return _handleFolderAssets(sharePath, req);
+        return await _handleFolderAssets(sharePath, req);
       }
 
       // Otherwise, use PhotoManager for system photos
@@ -567,7 +567,7 @@ class LanShareService {
 
       if (filePath != null && filePath.isNotEmpty) {
         final file = File(filePath);
-        return _serveFileStream(file, req, isAttachment: true, assetType: AssetType.image);
+        return await _serveFileStream(file, req, isAttachment: true, assetType: AssetType.image);
       }
 
       final entity = await AssetEntity.fromId(assetId);
@@ -575,7 +575,7 @@ class LanShareService {
       final file = await entity.originFile;
       if (file == null) return Response.notFound('File unavailable');
 
-      return _serveFileStream(file, req, isAttachment: true, assetType: entity.type);
+      return await _serveFileStream(file, req, isAttachment: true, assetType: entity.type);
     } catch (e) {
       return Response.internalServerError(body: e.toString());
     }
@@ -588,7 +588,7 @@ class LanShareService {
 
       if (filePath != null && filePath.isNotEmpty) {
         final file = File(filePath);
-        return _serveFileStream(file, req, isAttachment: false, assetType: AssetType.video);
+        return await _serveFileStream(file, req, isAttachment: false, assetType: AssetType.video);
       }
 
       final entity = await AssetEntity.fromId(assetId);
@@ -596,7 +596,7 @@ class LanShareService {
       final file = await entity.originFile;
       if (file == null) return Response.notFound('File unavailable');
 
-      return _serveFileStream(file, req, isAttachment: false, assetType: entity.type);
+      return await _serveFileStream(file, req, isAttachment: false, assetType: entity.type);
     } catch (e) {
       return Response.internalServerError(body: e.toString());
     }
