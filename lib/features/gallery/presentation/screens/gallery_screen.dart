@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -1173,7 +1174,9 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   }
 
   Future<void> _shareMedia(MediaAsset asset) async {
-    final file = await asset.entity.originFile;
+    final file = asset.entity != null
+        ? await asset.entity!.originFile
+        : (asset.vaultFilePath != null ? File(asset.vaultFilePath!) : null);
     if (file != null && mounted) {
       // Basic share logic
     }
@@ -1320,21 +1323,44 @@ class _ImagePageState extends State<_ImagePage> {
   }
 
   Future<void> _load() async {
-    final thumb = await widget.asset.entity.thumbnailDataWithSize(
-      const ThumbnailSize(800, 800),
-      quality: 90,
-      format: ThumbnailFormat.jpeg,
-    );
-    if (mounted && thumb != null) {
-      setState(() {
-        _bytes = thumb;
-        _loading = false;
-      });
-    }
+    try {
+      if (widget.asset.vaultFilePath != null) {
+        final vaultFile = File(widget.asset.vaultFilePath!);
+        if (await vaultFile.exists()) {
+          final bytes = await vaultFile.readAsBytes();
+          if (mounted) {
+            setState(() {
+              _bytes = bytes;
+              _loading = false;
+            });
+            return;
+          }
+        }
+      }
 
-    final fullBytes = await widget.asset.entity.originBytes;
-    if (mounted && fullBytes != null) {
-      setState(() => _bytes = fullBytes);
+      if (widget.asset.entity != null) {
+        final thumb = await widget.asset.entity!.thumbnailDataWithSize(
+          const ThumbnailSize(800, 800),
+          quality: 90,
+          format: ThumbnailFormat.jpeg,
+        );
+        if (mounted && thumb != null) {
+          setState(() {
+            _bytes = thumb;
+            _loading = false;
+          });
+        }
+
+        final fullBytes = await widget.asset.entity!.originBytes;
+        if (mounted && fullBytes != null) {
+          setState(() => _bytes = fullBytes);
+        }
+        return;
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() => _loading = false);
     }
   }
 
@@ -1385,8 +1411,12 @@ class _VideoPageState extends State<_VideoPage> {
 
   Future<void> _initVideo() async {
     try {
-      final file = await widget.asset.entity.originFile;
-      if (file == null) {
+      final file = widget.asset.entity != null
+          ? await widget.asset.entity!.originFile
+          : (widget.asset.vaultFilePath != null
+              ? File(widget.asset.vaultFilePath!)
+              : null);
+      if (file == null || !await file.exists()) {
         if (mounted) {
           setState(() {
             _loading = false;

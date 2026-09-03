@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -25,6 +26,7 @@ class VaultService {
 
   static const String _vaultKey = 'vault_asset_ids';
   static const String _vaultFileMapKey = 'vault_file_map'; // Maps vault IDs to original paths
+  static const String _vaultMetadataKey = 'vault_metadata_map'; // JSON mapping assetId -> metadata JSON
   static const String _vaultDirName = '.lumina_vault';
 
   // ─── Vault directory management ────────────────────────
@@ -189,6 +191,30 @@ class VaultService {
     await _storage.write(key: _vaultKey, value: ids.join(','));
   }
 
+  // ─── Load metadata map ───────────────────────────────────
+
+  Future<Map<String, Map<String, dynamic>>> _loadMetadataMap() async {
+    try {
+      final raw = await _storage.read(key: _vaultMetadataKey);
+      if (raw == null || raw.isEmpty) return {};
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return decoded.map(
+        (key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map)),
+      );
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> _saveMetadataMap(Map<String, Map<String, dynamic>> map) async {
+    try {
+      final raw = jsonEncode(map);
+      await _storage.write(key: _vaultMetadataKey, value: raw);
+    } catch (e) {
+      throw VaultException('Failed to save vault metadata: $e');
+    }
+  }
+
   // ─── Load vault media ─────────────────────────────────────
 
   Future<List<MediaAsset>> loadVaultAssets() async {
@@ -198,32 +224,53 @@ class VaultService {
     final assets = <MediaAsset>[];
     final validIds = <String>[];
     final fileMap = await _loadFileMap();
+    final metadataMap = await _loadMetadataMap();
 
     for (final id in ids) {
       try {
+        // First try loading metadata if available (for deleted original MediaStore assets)
+        if (metadataMap.containsKey(id)) {
+          final meta = metadataMap[id]!;
+          final vaultAsset = MediaAsset.fromVaultMetadataMap(meta);
+          if (vaultAsset.vaultFilePath != null &&
+              await File(vaultAsset.vaultFilePath!).exists()) {
+            assets.add(vaultAsset);
+            validIds.add(id);
+            continue;
+          }
+        }
+
+        // Fallback: Check if AssetEntity still exists or fallback mapping
         final entity = await AssetEntity.fromId(id);
-        if (entity != null) {
-          final mapping = fileMap[id];
-          // Extract vault path from "originalPath|vaultPath" format
-          final vaultPath = mapping != null 
-            ? mapping.split('|').length == 2 
-              ? mapping.split('|')[1]
-              : mapping // fallback for old format
+        final mapping = fileMap[id];
+        final vaultPath = mapping != null
+            ? mapping.split('|').length == 2
+                ? mapping.split('|')[1]
+                : mapping
             : null;
-          
-          assets.add(MediaAsset(
+
+        if (vaultPath != null && await File(vaultPath).exists()) {
+          final origPath = mapping != null && mapping.split('|').length == 2
+              ? mapping.split('|')[0]
+              : null;
+          final asset = MediaAsset(
             entity: entity,
+            customId: entity == null ? id : null,
             isVaulted: true,
             vaultFilePath: vaultPath,
-          ));
+            originalFilePath: origPath,
+          );
+          assets.add(asset);
+          validIds.add(id);
+        } else if (entity != null) {
+          assets.add(MediaAsset(entity: entity, isVaulted: true));
           validIds.add(id);
         }
       } catch (_) {
-        // Silent fallback for missing/corrupted entries
+        // Silent fallback for corrupted entries
       }
     }
 
-    // Clean up any invalid IDs
     if (validIds.length != ids.length) {
       await _saveVaultIds(validIds);
     }
@@ -239,8 +286,11 @@ class VaultService {
   Future<bool> addToVault(MediaAsset asset) async {
     try {
       await _ensureVaultDirectory();
-      
-      final file = await asset.entity.originFile;
+
+      final file = asset.entity != null
+          ? await asset.entity!.originFile
+          : (asset.vaultFilePath != null ? File(asset.vaultFilePath!) : null);
+
       if (file == null || !await file.exists()) {
         throw VaultException('File not found or inaccessible');
       }
@@ -250,29 +300,52 @@ class VaultService {
         return true; // Already vaulted
       }
 
-      // Store original path for later recovery
       final originalPath = file.path;
       final vaultDir = await _getVaultDirectory();
-      
-      // Create a unique filename with timestamp
+
       final ext = file.path.split('.').last;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final vaultFileName = '${asset.id}_$timestamp.$ext';
       final vaultFilePath = '${vaultDir.path}/$vaultFileName';
 
+      // Generate thumbnail byte cache before moving/deleting original file
+      String? vaultThumbPath;
+      try {
+        final thumbBytes = asset.entity != null
+            ? await asset.entity!.thumbnailDataWithSize(
+                const ThumbnailSize(300, 300),
+                quality: 80,
+                format: ThumbnailFormat.jpeg,
+              )
+            : null;
+        if (thumbBytes != null) {
+          vaultThumbPath = '${vaultDir.path}/thumb_${asset.id}_$timestamp.jpg';
+          await File(vaultThumbPath).writeAsBytes(thumbBytes);
+        }
+      } catch (_) {}
+
       // Copy file to vault, then delete original to hide from device gallery
       await file.copy(vaultFilePath);
-      await file.delete();
+      try {
+        await file.delete();
+      } catch (_) {}
 
-      // Note: PhotoManager and MediaStore will automatically refresh as the file
-      // is no longer accessible, causing it to disappear from device gallery
+      final updatedAsset = asset.copyWith(
+        isVaulted: true,
+        vaultFilePath: vaultFilePath,
+        vaultThumbPath: vaultThumbPath,
+        originalFilePath: originalPath,
+      );
 
-      // Save mapping: assetId -> "originalPath|vaultPath"
+      // Save file map & metadata map
       final fileMap = await _loadFileMap();
       fileMap[asset.id] = '$originalPath|$vaultFilePath';
       await _saveFileMap(fileMap);
 
-      // Add to vault IDs
+      final metadataMap = await _loadMetadataMap();
+      metadataMap[asset.id] = updatedAsset.toVaultMetadataMap();
+      await _saveMetadataMap(metadataMap);
+
       ids.add(asset.id);
       await _saveVaultIds(ids);
 
@@ -289,48 +362,59 @@ class VaultService {
   Future<bool> removeFromVault(String assetId) async {
     try {
       final fileMap = await _loadFileMap();
+      final metadataMap = await _loadMetadataMap();
       final mapping = fileMap[assetId];
+      final meta = metadataMap[assetId];
 
-      if (mapping != null) {
-        try {
-          // Parse mapping: "originalPath|vaultPath"
-          final parts = mapping.split('|');
-          if (parts.length == 2) {
-            final originalPath = parts[0];
-            final vaultPath = parts[1];
-            final vaultFile = File(vaultPath);
+      String? vaultPath;
+      String? originalPath;
+      String? vaultThumbPath;
 
-            if (await vaultFile.exists()) {
-              final originalFile = File(originalPath);
-              final originalDir = originalFile.parent;
+      if (meta != null) {
+        vaultPath = meta['vaultFilePath'] as String?;
+        originalPath = meta['originalFilePath'] as String?;
+        vaultThumbPath = meta['vaultThumbPath'] as String?;
+      }
 
-              // Try to restore to original location if directory still exists
-              if (await originalDir.exists()) {
-                await vaultFile.copy(originalPath);
-              } else {
-                // Fallback: restore to Documents/RestoreFromVault directory
-                final appDir = await getApplicationDocumentsDirectory();
-                final fallbackPath = '${appDir.path}/RestoreFromVault/${originalFile.path.split('/').last}';
-                final fallbackDir = Directory(fallbackPath).parent;
-                await fallbackDir.create(recursive: true);
-                await vaultFile.copy(fallbackPath);
-              }
-
-              // Delete from vault
-              await vaultFile.delete();
-
-              // Note: PhotoManager and MediaStore will automatically refresh as the file
-              // is restored to a standard gallery location, causing it to reappear in device gallery
-            }
-          }
-        } catch (_) {
-          // If restoration fails, continue with cleanup
+      if (vaultPath == null && mapping != null) {
+        final parts = mapping.split('|');
+        if (parts.length == 2) {
+          originalPath = parts[0];
+          vaultPath = parts[1];
+        } else {
+          vaultPath = mapping;
         }
       }
 
-      // Remove from tracking
+      if (vaultPath != null) {
+        final vaultFile = File(vaultPath);
+        if (await vaultFile.exists()) {
+          final targetPath = originalPath ??
+              '${(await getApplicationDocumentsDirectory()).path}/RestoreFromVault/${vaultFile.path.split('/').last}';
+          final targetFile = File(targetPath);
+          final targetDir = targetFile.parent;
+
+          if (!await targetDir.exists()) {
+            await targetDir.create(recursive: true);
+          }
+
+          await vaultFile.copy(targetPath);
+          await vaultFile.delete();
+        }
+      }
+
+      if (vaultThumbPath != null) {
+        try {
+          final thumbFile = File(vaultThumbPath);
+          if (await thumbFile.exists()) await thumbFile.delete();
+        } catch (_) {}
+      }
+
       fileMap.remove(assetId);
       await _saveFileMap(fileMap);
+
+      metadataMap.remove(assetId);
+      await _saveMetadataMap(metadataMap);
 
       final ids = await _loadVaultIds();
       ids.remove(assetId);
