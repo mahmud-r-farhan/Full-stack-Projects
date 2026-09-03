@@ -3,37 +3,114 @@ import 'package:photo_manager/photo_manager.dart';
 // ─── Media Asset Model ─────────────────────────────────────
 class MediaAsset {
   const MediaAsset({
-    required this.entity,
+    this.entity,
+    String? customId,
+    AssetType? customType,
+    DateTime? customCreateDateTime,
+    int? customWidth,
+    int? customHeight,
+    Duration? customVideoDuration,
     this.exifData,
     this.isVaulted = false,
     this.vaultFilePath,
-  });
+    this.vaultThumbPath,
+    this.originalFilePath,
+  })  : _customId = customId,
+        _customType = customType,
+        _customCreateDateTime = customCreateDateTime,
+        _customWidth = customWidth,
+        _customHeight = customHeight,
+        _customVideoDuration = customVideoDuration,
+        assert(
+          entity != null || customId != null,
+          'Either entity or customId must be provided',
+        );
 
-  final AssetEntity entity;
+  final AssetEntity? entity;
+  final String? _customId;
+  final AssetType? _customType;
+  final DateTime? _customCreateDateTime;
+  final int? _customWidth;
+  final int? _customHeight;
+  final Duration? _customVideoDuration;
+
   final Map<String, dynamic>? exifData;
   final bool isVaulted;
   final String? vaultFilePath;
+  final String? vaultThumbPath;
+  final String? originalFilePath;
 
-  String get id => entity.id;
-  AssetType get type => entity.type;
-  DateTime get createDateTime => entity.createDateTime;
-  int get width => entity.width;
-  int get height => entity.height;
-  String? get latitude => entity.latitude?.toString();
-  String? get longitude => entity.longitude?.toString();
-  Duration? get videoDuration => entity.videoDuration;
+  String get id => entity?.id ?? _customId!;
+  AssetType get type => entity?.type ?? _customType ?? AssetType.image;
+  DateTime get createDateTime =>
+      entity?.createDateTime ?? _customCreateDateTime ?? DateTime.now();
+  int get width => entity?.width ?? _customWidth ?? 0;
+  int get height => entity?.height ?? _customHeight ?? 0;
+  String? get latitude => entity?.latitude?.toString();
+  String? get longitude => entity?.longitude?.toString();
+  Duration? get videoDuration => entity?.videoDuration ?? _customVideoDuration;
 
   MediaAsset copyWith({
     AssetEntity? entity,
+    String? customId,
+    AssetType? customType,
+    DateTime? customCreateDateTime,
+    int? customWidth,
+    int? customHeight,
+    Duration? customVideoDuration,
     Map<String, dynamic>? exifData,
     bool? isVaulted,
     String? vaultFilePath,
+    String? vaultThumbPath,
+    String? originalFilePath,
   }) {
     return MediaAsset(
       entity: entity ?? this.entity,
+      customId: customId ?? _customId,
+      customType: customType ?? _customType,
+      customCreateDateTime: customCreateDateTime ?? _customCreateDateTime,
+      customWidth: customWidth ?? _customWidth,
+      customHeight: customHeight ?? _customHeight,
+      customVideoDuration: customVideoDuration ?? _customVideoDuration,
       exifData: exifData ?? this.exifData,
       isVaulted: isVaulted ?? this.isVaulted,
       vaultFilePath: vaultFilePath ?? this.vaultFilePath,
+      vaultThumbPath: vaultThumbPath ?? this.vaultThumbPath,
+      originalFilePath: originalFilePath ?? this.originalFilePath,
+    );
+  }
+
+  Map<String, dynamic> toVaultMetadataMap() {
+    return {
+      'id': id,
+      'type': type == AssetType.video ? 'video' : 'image',
+      'createDateTime': createDateTime.toIso8601String(),
+      'width': width,
+      'height': height,
+      'videoDurationMs': videoDuration?.inMilliseconds,
+      'vaultFilePath': vaultFilePath,
+      'vaultThumbPath': vaultThumbPath,
+      'originalFilePath': originalFilePath,
+    };
+  }
+
+  factory MediaAsset.fromVaultMetadataMap(Map<String, dynamic> map) {
+    return MediaAsset(
+      customId: map['id'] as String,
+      customType:
+          map['type'] == 'video' ? AssetType.video : AssetType.image,
+      customCreateDateTime: map['createDateTime'] != null
+          ? DateTime.tryParse(map['createDateTime'] as String)
+          : null,
+      customWidth: map['width'] as int?,
+      customHeight: map['height'] as int?,
+      customVideoDuration: map['videoDurationMs'] != null
+          ? Duration(milliseconds: map['videoDurationMs'] as int)
+          : null,
+      isVaulted: true,
+      vaultFilePath: map['vaultFilePath'] as String?,
+      vaultThumbPath: map['vaultThumbPath'] as String?,
+      originalFilePath: map['originalFilePath'] as String?,
     );
   }
 

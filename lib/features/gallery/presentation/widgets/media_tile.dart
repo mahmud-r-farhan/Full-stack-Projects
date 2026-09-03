@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -42,19 +43,56 @@ class _MediaTileState extends State<MediaTile>
   }
 
   Future<void> _loadThumbnail() async {
-    // Thumbnail generation is already fast but we keep it off-frame
-    // by awaiting after the first frame builds
     await Future.delayed(Duration(milliseconds: widget.index < 30 ? 0 : 16));
     if (!mounted) return;
 
-    final bytes = await widget.asset.entity.thumbnailDataWithSize(
-      const ThumbnailSize(200, 200),
-      quality: 80,
-      format: ThumbnailFormat.jpeg,
-    );
+    try {
+      if (widget.asset.vaultThumbPath != null) {
+        final thumbFile = File(widget.asset.vaultThumbPath!);
+        if (await thumbFile.exists()) {
+          final bytes = await thumbFile.readAsBytes();
+          if (mounted) {
+            setState(() {
+              _thumb = bytes;
+              _loading = false;
+            });
+            return;
+          }
+        }
+      }
+
+      if (widget.asset.entity != null) {
+        final bytes = await widget.asset.entity!.thumbnailDataWithSize(
+          const ThumbnailSize(200, 200),
+          quality: 80,
+          format: ThumbnailFormat.jpeg,
+        );
+        if (mounted) {
+          setState(() {
+            _thumb = bytes;
+            _loading = false;
+          });
+          return;
+        }
+      }
+
+      if (widget.asset.vaultFilePath != null) {
+        final vaultFile = File(widget.asset.vaultFilePath!);
+        if (await vaultFile.exists()) {
+          final bytes = await vaultFile.readAsBytes();
+          if (mounted) {
+            setState(() {
+              _thumb = bytes;
+              _loading = false;
+            });
+            return;
+          }
+        }
+      }
+    } catch (_) {}
+
     if (mounted) {
       setState(() {
-        _thumb = bytes;
         _loading = false;
       });
     }

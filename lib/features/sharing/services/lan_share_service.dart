@@ -216,7 +216,7 @@ class LanShareService {
 
       // If sharing a folder from filesystem (Downloads, Documents, etc.)
       if (sharePath != null && sharePath != 'PHOTOS_SYSTEM') {
-        return _handleFolderAlbums(sharePath);
+        return await _handleFolderAlbums(sharePath);
       }
 
       // Otherwise, use PhotoManager for system photos
@@ -313,7 +313,7 @@ class LanShareService {
 
       // If sharing a folder from filesystem
       if (sharePath != null && sharePath != 'PHOTOS_SYSTEM') {
-        return _handleFolderAssets(sharePath, req);
+        return await _handleFolderAssets(sharePath, req);
       }
 
       // Otherwise, use PhotoManager for system photos
@@ -511,44 +511,71 @@ class LanShareService {
     }
   }
 
+  Future<Response> _serveFileStream(File file, Request req, {bool isAttachment = false, AssetType assetType = AssetType.image}) async {
+    if (!await file.exists()) return Response.notFound('File not found');
+
+    final length = await file.length();
+    final mimeType = _getMimeType(file.path, assetType);
+    final filename = file.path.split('/').last;
+
+    final headers = <String, String>{
+      'Content-Type': mimeType,
+      'Accept-Ranges': 'bytes',
+    };
+
+    if (isAttachment) {
+      headers['Content-Disposition'] = 'attachment; filename="$filename"';
+    }
+
+    final rangeHeader = req.headers['range'];
+    if (rangeHeader != null && rangeHeader.startsWith('bytes=')) {
+      final parts = rangeHeader.substring(6).split('-');
+      final start = int.tryParse(parts[0]) ?? 0;
+      final end = (parts.length > 1 && parts[1].isNotEmpty)
+          ? int.tryParse(parts[1]) ?? (length - 1)
+          : (length - 1);
+
+      if (start >= length || end >= length || start > end) {
+        return Response(
+          416,
+          headers: {'Content-Range': 'bytes */$length'},
+        );
+      }
+
+      final contentLength = end - start + 1;
+      headers['Content-Length'] = contentLength.toString();
+      headers['Content-Range'] = 'bytes $start-$end/$length';
+
+      final stream = file.openRead(start, end + 1);
+      return Response(
+        206,
+        body: stream,
+        headers: headers,
+      );
+    }
+
+    headers['Content-Length'] = length.toString();
+    return Response.ok(
+      file.openRead(),
+      headers: headers,
+    );
+  }
+
   Future<Response> _handleFile(Request req, String assetId) async {
     try {
       final filePath = req.url.queryParameters['path'];
 
-      // Handle filesystem file
       if (filePath != null && filePath.isNotEmpty) {
         final file = File(filePath);
-        if (!await file.exists()) return Response.notFound('File not found');
-
-        final bytes = await file.readAsBytes();
-        final mimeType = _getMimeType(filePath, AssetType.image);
-        final filename = filePath.split('/').last;
-        return Response.ok(
-          bytes,
-          headers: {
-            'Content-Type': mimeType,
-            'Content-Disposition': 'attachment; filename="$filename"',
-            'Content-Length': bytes.length.toString(),
-          },
-        );
+        return await _serveFileStream(file, req, isAttachment: true, assetType: AssetType.image);
       }
 
-      // Handle PhotoManager asset
       final entity = await AssetEntity.fromId(assetId);
       if (entity == null) return Response.notFound('Asset not found');
       final file = await entity.originFile;
       if (file == null) return Response.notFound('File unavailable');
-      final bytes = await file.readAsBytes();
-      final mimeType = _getMimeType(file.path, entity.type);
-      final filename = file.path.split('/').last;
-      return Response.ok(
-        bytes,
-        headers: {
-          'Content-Type': mimeType,
-          'Content-Disposition': 'attachment; filename="$filename"',
-          'Content-Length': bytes.length.toString(),
-        },
-      );
+
+      return await _serveFileStream(file, req, isAttachment: true, assetType: entity.type);
     } catch (e) {
       return Response.internalServerError(body: e.toString());
     }
@@ -559,38 +586,17 @@ class LanShareService {
     try {
       final filePath = req.url.queryParameters['path'];
 
-      // Handle filesystem file
       if (filePath != null && filePath.isNotEmpty) {
         final file = File(filePath);
-        if (!await file.exists()) return Response.notFound('File not found');
-
-        final bytes = await file.readAsBytes();
-        final mimeType = _getMimeType(filePath, AssetType.video);
-        return Response.ok(
-          bytes,
-          headers: {
-            'Content-Type': mimeType,
-            'Accept-Ranges': 'bytes',
-            'Content-Length': bytes.length.toString(),
-          },
-        );
+        return await _serveFileStream(file, req, isAttachment: false, assetType: AssetType.video);
       }
 
-      // Handle PhotoManager asset
       final entity = await AssetEntity.fromId(assetId);
       if (entity == null) return Response.notFound('Asset not found');
       final file = await entity.originFile;
       if (file == null) return Response.notFound('File unavailable');
-      final bytes = await file.readAsBytes();
-      final mimeType = _getMimeType(file.path, entity.type);
-      return Response.ok(
-        bytes,
-        headers: {
-          'Content-Type': mimeType,
-          'Accept-Ranges': 'bytes',
-          'Content-Length': bytes.length.toString(),
-        },
-      );
+
+      return await _serveFileStream(file, req, isAttachment: false, assetType: entity.type);
     } catch (e) {
       return Response.internalServerError(body: e.toString());
     }
@@ -1488,6 +1494,7 @@ class LanShareService {
       allAlbums.forEach((album, idx) => {
         const item = document.createElement('div');
         item.className = 'album-item';
+        item.setAttribute('data-album-id', album.id);
         item.textContent = (album.name || 'All Photos') + ' (' + album.count + ')';
         item.onclick = () => loadAlbumAssets(album.id, album.name || 'All Photos');
         albumList.appendChild(item);
@@ -1519,8 +1526,10 @@ class LanShareService {
     // Update active album in sidebar
     document.querySelectorAll('.album-item').forEach(item => {
       item.classList.remove('active');
+      if (item.getAttribute('data-album-id') === albumId) {
+        item.classList.add('active');
+      }
     });
-    event?.target?.classList?.add('active');
 
     closeSidebarOnMobile();
 
@@ -1579,15 +1588,18 @@ class LanShareService {
     }
     grid.innerHTML = html;
 
-    // Load more button
-if (hasMore) {
-  const container = document.createElement('div');
-  container.className = 'load-more-container';
-  container.style.textAlign = 'center';
-  container.style.marginTop = '24px';
-  container.innerHTML = '<button class="lb-btn" onclick="loadMoreAssets()" style="cursor:pointer;">Refresh</button>';
-  grid.parentElement.appendChild(container);
-}
+    // Remove old load-more container if exists
+    const oldContainer = document.querySelector('.load-more-container');
+    if (oldContainer) oldContainer.remove();
+
+    if (hasMore) {
+      const container = document.createElement('div');
+      container.className = 'load-more-container';
+      container.style.textAlign = 'center';
+      container.style.marginTop = '24px';
+      container.innerHTML = '<button class="lb-btn" onclick="loadMoreAssets()" style="cursor:pointer;margin:0 auto;">Load More</button>';
+      grid.parentElement.appendChild(container);
+    }
   }
 
   function formatDuration(secs) {

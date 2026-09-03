@@ -15,10 +15,12 @@ The UI is inspired by **Apple Photos UX** rendered through a **Liquid Crystal (G
 
 ## 🛠️ Development & Build Status
 *Current Iteration complete and production-ready.*
-- **Linting:** 100% Passing (`flutter analyze` reports 0 errors).
-- **Dependency Conflicts Resolved:** Configured `exif` and `photo_manager` to coexist perfectly.
-- **Asynchronous Data Handling:** Updated all asynchronous UI calls (e.g., `AssetPathEntity.assetCountAsync`) with robust `FutureBuilder` integrations to prevent state errors.
-- **Platform Integrity:** All local IP detections and `shelf` server implementations carefully structured for multi-threading (`Isolate` computation where needed) to ensure UI thread never locks.
+- **Linting & Code Quality:** 100% Passing (`flutter analyze` reports 0 issues).
+- **Automated Testing:** 100% Passing (`flutter test` suite fully passing).
+- **CI/CD Integration:** Automated GitHub Actions pipeline (`.github/workflows/ci.yml`) for linting and testing on pull requests and pushes.
+- **Android 14+ Compatibility:** Full support for `READ_MEDIA_VISUAL_USER_SELECTED` partial photo picker permissions.
+- **Optimized LAN Streaming:** Memory-efficient chunked streaming with HTTP Range Request (`206 Partial Content`) support for instant video seeking across PC/TV/mobile browsers.
+- **Robust Vault Engine:** Encrypted secure metadata serialization (`toVaultMetadataMap`/`fromVaultMetadataMap`) and offline thumbnail caching (`vaultThumbPath`) for physical file hiding and seamless media recovery.
 
 ---
 
@@ -91,9 +93,11 @@ lib/
 | Feature | Detail |
 |---|---|
 | Embedded HTTP server | `shelf` + `shelf_router` — runs entirely on-device |
+| Chunked File Streaming | Memory-efficient `openRead()` streaming — no RAM OOM crashes |
+| HTTP Range Requests | Full `206 Partial Content` support for seamless video seeking on PC & TV |
 | Zero internet needed | Connects via local Wi-Fi only |
 | Web UI auto-generated | Full HTML/JS gallery browsable from any browser |
-| JSON API | `/api/albums`, `/api/assets/<id>`, `/api/thumb/<id>`, `/api/file/<id>` |
+| JSON API | `/api/albums`, `/api/assets/<id>`, `/api/thumb/<id>`, `/api/file/<id>`, `/api/stream/<id>` |
 | QR Code | `qr_flutter` generates a scannable code for instant connection |
 | Copy URL | One-tap clipboard copy of the server URL |
 | Auto IP detection | `network_info_plus` fetches device Wi-Fi IP automatically |
@@ -102,10 +106,12 @@ lib/
 | Feature | Detail |
 |---|---|
 | Biometric gate | `local_auth` — fingerprint, face ID, device PIN |
-| Secure storage | Asset IDs persisted with `flutter_secure_storage` (AES-256 encrypted prefs) |
+| Secure storage | Encrypted metadata persisted with `flutter_secure_storage` (AES-256 encrypted prefs) |
+| Physical file hiding | Moves files out of MediaStore to hidden `.lumina_vault` directory |
+| Offline thumbnail cache | Renders thumbnails & full-size media safely even when original MediaStore entries are deleted |
+| Restoration flow | Move back restores files to original directories or fallback safe locations |
 | Hidden grid | Private media displayed only when authenticated |
 | Lock on demand | One-tap lock returns vault to locked state |
-| Move back | Long-press tile → "Remove from Vault" context menu |
 
 ### ⚙️ Settings
 | Feature | Detail |

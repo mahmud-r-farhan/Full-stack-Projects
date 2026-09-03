@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -611,11 +612,25 @@ class _AssetSelectTileState extends State<_AssetSelectTile> {
   }
 
   Future<void> _load() async {
-    final bytes = await widget.asset.entity.thumbnailDataWithSize(
-      const ThumbnailSize.square(150),
-      quality: 75,
-    );
-    if (mounted) setState(() => _thumb = bytes);
+    try {
+      if (widget.asset.vaultThumbPath != null) {
+        final f = File(widget.asset.vaultThumbPath!);
+        if (await f.exists()) {
+          final bytes = await f.readAsBytes();
+          if (mounted) {
+            setState(() => _thumb = bytes);
+            return;
+          }
+        }
+      }
+      if (widget.asset.entity != null) {
+        final bytes = await widget.asset.entity!.thumbnailDataWithSize(
+          const ThumbnailSize.square(150),
+          quality: 75,
+        );
+        if (mounted) setState(() => _thumb = bytes);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -683,11 +698,35 @@ class _VaultTileState extends State<_VaultTile> {
   }
 
   Future<void> _load() async {
-    final bytes = await widget.asset.entity.thumbnailDataWithSize(
-      const ThumbnailSize.square(200),
-      quality: 80,
-    );
-    if (mounted) setState(() => _thumb = bytes);
+    try {
+      if (widget.asset.vaultThumbPath != null) {
+        final f = File(widget.asset.vaultThumbPath!);
+        if (await f.exists()) {
+          final bytes = await f.readAsBytes();
+          if (mounted) {
+            setState(() => _thumb = bytes);
+            return;
+          }
+        }
+      }
+      if (widget.asset.entity != null) {
+        final bytes = await widget.asset.entity!.thumbnailDataWithSize(
+          const ThumbnailSize.square(200),
+          quality: 80,
+        );
+        if (mounted) {
+          setState(() => _thumb = bytes);
+          return;
+        }
+      }
+      if (widget.asset.vaultFilePath != null) {
+        final f = File(widget.asset.vaultFilePath!);
+        if (await f.exists()) {
+          final bytes = await f.readAsBytes();
+          if (mounted) setState(() => _thumb = bytes);
+        }
+      }
+    } catch (_) {}
   }
 
   @override

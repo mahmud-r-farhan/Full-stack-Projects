@@ -39,8 +39,7 @@ class MediaRepository {
     int pageSize = _pageSize,
   }) async {
     final entities = await album.getAssetListPaged(page: page, size: pageSize);
-    // Map to our domain model off the main isolate
-    return compute(_mapEntities, entities);
+    return entities.map((e) => MediaAsset(entity: e)).toList();
   }
 
   // ─── Thumbnail (micro-render, blazing fast) ───────────────
@@ -79,7 +78,7 @@ class MediaRepository {
     if (albums.isEmpty) return [];
     final all = albums.first;
     final entities = await all.getAssetListPaged(page: 0, size: count);
-    return compute(_mapEntities, entities);
+    return entities.map((e) => MediaAsset(entity: e)).toList();
   }
 
   // ─── Total asset count ────────────────────────────────────
@@ -94,10 +93,6 @@ class MediaRepository {
   }
 
   // ─── Isolate-safe static helpers ─────────────────────────
-
-  static List<MediaAsset> _mapEntities(List<AssetEntity> entities) {
-    return entities.map((e) => MediaAsset(entity: e)).toList();
-  }
 
   static List<MediaGroup> _groupByDate(List<MediaAsset> assets) {
     final Map<String, List<MediaAsset>> grouped = {};
